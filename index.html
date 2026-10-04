@@ -1,0 +1,2665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#6e1c4d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Times Tables">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<title>Taylor Swift Times Tables ✨</title>
+<style>
+  :root{
+    --wood-dark:#3a0b28;
+    --wood-mid:#6e1c4d;
+    --wood-light:#c2447e;
+    --tile:#ffd7ea;
+    --tile-shadow:#e06aa6;
+    --tile-selected:#ffe66d;
+    --leaf:#ff4d79;
+    --leaf-dark:#c81854;
+    --cream:#fff0f6;
+    --ink:#4a0e2e;
+    --good:#4caf6b;
+    --bad:#ef4462;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;padding:0;height:100%;
+    background:
+      radial-gradient(ellipse at top left, rgba(255,255,255,0.05), transparent 60%),
+      linear-gradient(160deg, var(--wood-mid), var(--wood-dark) 70%);
+    font-family: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+    color: var(--cream);
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior:none;
+  }
+  #app{
+    max-width:480px;
+    margin:0 auto;
+    min-height:100%;
+    padding:14px 12px 28px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .badge{
+    background:linear-gradient(180deg, #a02e63, #6e1c4d);
+    border:2px solid #3a0b28;
+    border-radius:14px;
+    padding:8px 14px;
+    text-align:center;
+    min-width:64px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 2px 4px rgba(0,0,0,0.4);
+  }
+  .badge .label{
+    font-size:10px;
+    letter-spacing:0.5px;
+    opacity:0.75;
+    margin-bottom:2px;
+  }
+  .badge .value{
+    font-size:20px;
+    font-weight:700;
+  }
+  .multiplier-badge{
+    background:linear-gradient(180deg, #ffe66d, #ffb020);
+    color:#4a0e2e;
+    font-weight:800;
+    font-size:13px;
+    padding:3px 8px;
+    border-radius:10px;
+    border:2px solid #3a0b28;
+    animation: pulseBadge 1s ease-in-out infinite;
+    white-space:nowrap;
+  }
+  .multiplier-badge.hidden{ display:none; }
+  @keyframes pulseBadge{
+    0%,100%{ transform:scale(1); }
+    50%{ transform:scale(1.12); }
+  }
+  .streak-badge{
+    background:linear-gradient(180deg, #ff9f43, #e8531f);
+    color:#fff;
+    font-weight:800;
+    font-size:12px;
+    padding:2px 8px;
+    border-radius:10px;
+    border:2px solid #3a0b28;
+    white-space:nowrap;
+  }
+  .streak-badge.hidden{ display:none; }
+  h1{
+    font-size:17px;
+    margin:0;
+    text-align:center;
+    flex:1;
+    font-weight:600;
+    color:var(--tile);
+    text-shadow:0 1px 2px rgba(0,0,0,0.5);
+  }
+  .target-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    background:rgba(0,0,0,0.2);
+    border-radius:12px;
+    padding:8px 10px;
+    flex-wrap:wrap;
+  }
+  .target-row span.tlabel{
+    font-size:13px;
+    opacity:0.85;
+  }
+  .stepper{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .stepper button{
+    width:30px;height:30px;
+    border-radius:8px;
+    border:none;
+    background:var(--tile);
+    color:var(--ink);
+    font-size:16px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .stepper button:active{ transform: scale(0.92); }
+  .stepper .tval{
+    min-width:44px;
+    text-align:center;
+    font-size:19px;
+    font-weight:700;
+    color:#ffd97a;
+  }
+  #grid{
+    display:grid;
+    gap:5px;
+    background:rgba(0,0,0,0.25);
+    padding:8px;
+    border-radius:14px;
+    border:2px solid rgba(0,0,0,0.3);
+  }
+  .grid-wrap{
+    position:relative;
+  }
+  #floaters{
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    overflow:visible;
+    z-index:5;
+  }
+  .float-score{
+    position:absolute;
+    font-weight:800;
+    font-size:19px;
+    color:#ffe66d;
+    text-shadow:0 1px 2px rgba(0,0,0,0.6), 0 0 6px rgba(255,230,109,0.5);
+    pointer-events:none;
+    white-space:nowrap;
+    transition: transform 0.9s cubic-bezier(0.16,0.6,0.2,1), opacity 0.9s ease-out;
+    z-index:6;
+  }
+  .equation-float{
+    position:fixed;
+    font-weight:800;
+    font-size:17px;
+    color:#fff;
+    background:rgba(58,11,40,0.6);
+    padding:4px 12px;
+    border-radius:10px;
+    white-space:nowrap;
+    text-shadow:0 1px 2px rgba(0,0,0,0.5);
+    pointer-events:none;
+    z-index:45;
+  }
+
+  /* Full-screen heart confetti, spawned when a heart is won */
+  #confetti{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    overflow:visible;
+    z-index:52; /* above quiz/popup cards so celebrations are visible */
+  }
+  .confetti-heart{
+    position:fixed;
+    top:0;
+    left:0;
+    pointer-events:none;
+    will-change: transform, opacity;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+    opacity:0;
+    transition: opacity 0.6s ease;
+  }
+
+  .firework-heart{
+    position:fixed;
+    transform: translate(-50%,-50%) scale(0.4);
+    pointer-events:none;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+    animation: fireworkBurst 1.1s ease-out forwards;
+    z-index:41;
+  }
+  @keyframes fireworkBurst{
+    0%   { transform: translate(-50%,-50%) scale(0.3); opacity:0; }
+    18%  { transform: translate(-50%,-50%) scale(1); opacity:1; }
+    100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.6); opacity:0; }
+  }
+
+  /* Periodic "Dad loves you" toast */
+  #loveToast{
+    position:fixed;
+    top:0; left:0; right:0;
+    display:flex;
+    justify-content:center;
+    padding-top:18px;
+    pointer-events:none;
+    z-index:60;
+  }
+  #loveToast.hidden{ display:none; }
+  .love-card{
+    background:linear-gradient(160deg, #ff8fc2, #c2447e);
+    border:3px solid #3a0b28;
+    border-radius:18px;
+    padding:16px 22px;
+    max-width:320px;
+    text-align:center;
+    box-shadow:0 8px 24px rgba(0,0,0,0.45);
+    opacity:0;
+    transform:translateY(-16px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    pointer-events:auto;
+  }
+  #loveToast.show .love-card{
+    opacity:1;
+    transform:translateY(0);
+  }
+  .love-title{
+    font-size:18px;
+    font-weight:800;
+    color:#fff;
+    text-shadow:0 1px 2px rgba(0,0,0,0.45);
+    margin-bottom:8px;
+    line-height:1.3;
+  }
+  .love-hearts{ font-size:20px; margin-bottom:4px; }
+  .love-message{
+    font-size:16px;
+    font-weight:800;
+    color:#fff;
+    text-shadow:0 1px 2px rgba(0,0,0,0.4);
+    line-height:1.35;
+  }
+  .love-reward{
+    margin-top:8px;
+    font-size:14px;
+    font-weight:700;
+    color:#ffe66d;
+  }
+  .love-dismiss{
+    margin-top:16px;
+    width:100%;
+  }
+  .cell{
+    aspect-ratio:1/1;
+    border-radius:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:clamp(13px, 4vw, 22px);
+    font-weight:700;
+    user-select:none;
+    cursor:pointer;
+    transition: transform 0.08s ease, opacity 0.25s ease;
+    position:relative;
+  }
+  .cell.number{
+    background: linear-gradient(180deg, var(--tile), var(--tile-shadow));
+    color:var(--ink);
+    box-shadow: 0 3px 0 rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.35);
+  }
+  .cell.number:active{ transform: scale(0.93); }
+  .cell.selected{
+    background: linear-gradient(180deg, var(--tile-selected), #d99a3a);
+    box-shadow: 0 0 0 3px #fff7d6, 0 3px 0 rgba(0,0,0,0.35);
+    transform: scale(1.04);
+  }
+  .cell.jewel{
+    background: transparent;
+    box-shadow:none;
+    cursor:default;
+  }
+  .sway{
+    width:100%; height:100%;
+    display:flex; align-items:center; justify-content:center;
+  }
+  body.spin-jewels .sway{
+    animation: jewelSpin var(--dur, 3s) ease-in-out infinite;
+  }
+  /* Spin on the vertical axis, like a coin turning */
+  @keyframes jewelSpin{
+    0%   { transform: perspective(220px) rotateY(0deg); }
+    10%  { transform: perspective(220px) rotateY(360deg); }
+    100% { transform: perspective(220px) rotateY(360deg); }
+  }
+  @media (prefers-reduced-motion: reduce){ .sway{ animation:none; } }
+  .cell.crystal{
+    background: transparent;
+    box-shadow:none;
+    cursor:default;
+  }
+  .cell.crystal svg{
+    width:60%;
+    height:60%;
+    filter: drop-shadow(0 0 5px rgba(255,230,109,0.85));
+    animation: crystalGlow 1.6s ease-in-out infinite;
+  }
+  @keyframes crystalGlow{
+    0%,100%{ filter: drop-shadow(0 0 4px rgba(255,230,109,0.6)); }
+    50%{ filter: drop-shadow(0 0 9px rgba(255,230,109,1)); }
+  }
+  .cell.jewel .heart{
+    position:relative;
+    width:44%;
+    height:44%;
+    margin-top:8%;
+    background: linear-gradient(135deg, var(--leaf), var(--leaf-dark));
+    transform: rotate(-45deg);
+    box-shadow: inset 0 1px 3px rgba(255,255,255,0.5), 0 2px 3px rgba(0,0,0,0.4);
+  }
+  .cell.jewel .heart::before,
+  .cell.jewel .heart::after{
+    content:"";
+    position:absolute;
+    width:100%;
+    height:100%;
+    border-radius:50%;
+    background:inherit;
+  }
+  .cell.jewel .heart::before{ top:-50%; left:0; }
+  .cell.jewel .heart::after{ left:50%; top:0; }
+  .cell.empty{
+    background: rgba(0,0,0,0.15);
+  }
+  .cell.bad{
+    animation: shake 0.3s ease;
+    background: linear-gradient(180deg, var(--bad), #8a2e22) !important;
+  }
+  .cell.pop{
+    animation: pop 0.3s ease forwards;
+  }
+  .cell.row-clear{
+    animation: rowflash 0.5s ease;
+  }
+  .cell.tile-fall{
+    animation: tileFall 0.45s ease-out;
+  }
+  @keyframes tileFall{
+    0%   { transform: translate(0, var(--offset)) rotate(0deg); }
+    10%  { transform: translate(-3px, var(--offset)) rotate(-3deg); }
+    20%  { transform: translate(3px, var(--offset)) rotate(3deg); }
+    30%  { transform: translate(-2px, var(--offset)) rotate(-2deg); }
+    38%  { transform: translate(0, var(--offset)) rotate(0deg); }
+    100% { transform: translate(0, 0) rotate(0deg); }
+  }
+  @keyframes shake{
+    0%,100%{transform:translateX(0);}
+    25%{transform:translateX(-4px);}
+    75%{transform:translateX(4px);}
+  }
+  @keyframes pop{
+    0%{transform:scale(1); opacity:1;}
+    100%{transform:scale(0.3); opacity:0;}
+  }
+  @keyframes rowflash{
+    0%{ box-shadow: 0 0 0 0 rgba(255,240,150,0.9);}
+    100%{ box-shadow: 0 0 0 0 rgba(255,240,150,0);}
+  }
+  footer{
+    display:flex;
+    gap:10px;
+    justify-content:center;
+    flex-wrap:wrap;
+    margin-top:4px;
+  }
+  .btn{
+    background: linear-gradient(180deg, #ff6fae, #c2447e);
+    border:none;
+    color:#fff;
+    padding:10px 18px;
+    border-radius:12px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    box-shadow: 0 3px 0 #8a1a54;
+  }
+  .btn:active{ transform: translateY(2px); box-shadow:none; }
+  .btn.secondary{
+    background: linear-gradient(180deg, #ffd166, #d99a3a);
+    color:var(--ink);
+    box-shadow: 0 3px 0 #a5722f;
+  }
+  .btn:disabled{
+    opacity:0.45;
+    cursor:not-allowed;
+    box-shadow:none;
+  }
+  .btn:disabled:active{ transform:none; }
+  #msg{
+    text-align:center;
+    font-size:13px;
+    min-height:18px;
+    opacity:0.85;
+  }
+  #rules{
+    background:rgba(0,0,0,0.2);
+    border-radius:10px;
+    padding:10px 12px;
+    font-size:12.5px;
+    line-height:1.5;
+    opacity:0.9;
+  }
+  #rules summary{
+    cursor:pointer;
+    font-weight:600;
+    margin-bottom:4px;
+  }
+
+  /* Spin-the-wheel overlay */
+  #spinOverlay, #quizOverlay, #levelCompleteOverlay, #bonusQuizOverlay, #shopOverlay, #checkoutOverlay, #settingsOverlay{
+    position:fixed;
+    inset:0;
+    background:rgba(50,8,34,0.85);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:50;
+    padding:20px;
+  }
+  #spinOverlay.hidden, #quizOverlay.hidden, #levelCompleteOverlay.hidden, #bonusQuizOverlay.hidden, #shopOverlay.hidden, #checkoutOverlay.hidden, #settingsOverlay.hidden{ display:none; }
+  /* Count-along dots shown during a wrong-answer wait */
+  .dot-area{ margin:6px 0 4px; }
+  .dot-area.hidden{ display:none; }
+  .dot-groups{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-bottom:8px; }
+  .dot-group{ display:grid; gap:3px; padding:5px; border-radius:8px;
+    background:rgba(255,255,255,0.08); border:2px solid rgba(255,255,255,0.12);
+    opacity:0.35; transition:opacity 0.2s, transform 0.2s, border-color 0.2s; }
+  .dot-group.tappable{ cursor:pointer; }
+  .dot-group.lit{ opacity:1; transform:scale(1.08); border-color:#ffe66d; background:rgba(255,230,109,0.15); }
+  .dot{ width:9px; height:9px; border-radius:50%; background:#ff8fc2; }
+  .dot-group.lit .dot{ background:#ffe66d; box-shadow:0 0 4px rgba(255,230,109,0.8); }
+  .dot-count{ font-size:30px; font-weight:900; color:#ffe66d; text-shadow:0 1px 3px rgba(0,0,0,0.5); min-height:36px; }
+  .dot-trail{ font-size:13px; color:#fff; opacity:0.85; min-height:18px; }
+  .settings-note{ font-size:13px; color:#fff; opacity:0.85; margin-bottom:12px; line-height:1.4; }
+  .table-grid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-bottom:12px; }
+  .table-chip{ display:flex; align-items:center; justify-content:center; gap:4px; padding:10px 4px;
+    border-radius:10px; background:rgba(255,255,255,0.12); color:#fff; font-weight:800; font-size:16px;
+    border:2px solid rgba(255,255,255,0.2); cursor:pointer; user-select:none; }
+  .table-chip input{ display:none; }
+  .table-chip.on{ background:var(--tile); color:var(--ink); border-color:#3a0b28; }
+  .settings-section{ font-size:13px; color:#fff; opacity:0.85; margin:4px 0 6px; text-align:left; }
+  .settings-toggle{ width:100%; margin-bottom:12px; }
+  .settings-actions{ display:flex; gap:10px; justify-content:center; }
+  .spin-card{
+    background:linear-gradient(160deg, var(--wood-light), var(--wood-mid));
+    border:3px solid #3a0b28;
+    border-radius:20px;
+    padding:20px 18px 24px;
+    text-align:center;
+    max-width:320px;
+    width:100%;
+    box-shadow:0 10px 30px rgba(0,0,0,0.5);
+  }
+  .spin-card h2{
+    margin:0 0 14px;
+    font-size:18px;
+    color:var(--tile);
+    text-shadow:0 1px 2px rgba(0,0,0,0.5);
+  }
+  .wheel-wrap{
+    position:relative;
+    width:220px;
+    height:220px;
+    margin:0 auto 16px;
+  }
+  .wheel-pointer{
+    position:absolute;
+    top:-14px;
+    left:50%;
+    transform:translateX(-50%);
+    width:0; height:0;
+    border-left:12px solid transparent;
+    border-right:12px solid transparent;
+    border-top:20px solid #ffd97a;
+    filter:drop-shadow(0 2px 2px rgba(0,0,0,0.5));
+    z-index:2;
+  }
+  #wheel{
+    width:220px;
+    height:220px;
+    border-radius:50%;
+    border:6px solid #3a0b28;
+    box-shadow:0 4px 14px rgba(0,0,0,0.5), inset 0 0 0 3px rgba(255,255,255,0.2);
+    position:relative;
+    transform:rotate(0deg);
+    transition: transform 4s cubic-bezier(0.12,0.67,0.14,1);
+  }
+  .wheel-label{
+    position:absolute;
+    left:50%;
+    top:50%;
+    width:0;
+    height:0;
+    transform-origin:0 0;
+  }
+  .wheel-label span{
+    /* Absolute + nowrap makes the span size to its text, so the -50% shift
+       actually centres it on the segment. (As a block inside a zero-width
+       parent it had zero width, so the text hung off to one side.) */
+    position:absolute;
+    left:0;
+    top:0;
+    display:block;
+    white-space:nowrap;
+    transform:translate(-50%,-50%);
+    font-size:15px;
+    font-weight:700;
+    color:var(--ink);
+    text-shadow:0 1px 0 rgba(255,255,255,0.3);
+  }
+  .wheel-hub{
+    position:absolute;
+    left:50%; top:50%;
+    width:26px; height:26px;
+    margin:-13px 0 0 -13px;
+    border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #ffe6a8, #b5822f);
+    border:2px solid #3a0b28;
+    z-index:3;
+  }
+  #spinResult{
+    min-height:22px;
+    font-size:16px;
+    font-weight:700;
+    color:#ffd97a;
+    margin-bottom:10px;
+  }
+
+  /* Times-table quiz overlay */
+  .quiz-progress{
+    display:flex;
+    justify-content:center;
+    gap:8px;
+    margin-bottom:16px;
+  }
+  .quiz-dot{
+    width:26px;height:26px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.15);
+    color:var(--cream);
+    font-size:12px;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:2px solid rgba(255,255,255,0.3);
+  }
+  .quiz-dot.active{
+    background:var(--tile-selected);
+    color:var(--ink);
+    border-color:#fff;
+  }
+  .quiz-dot.done{
+    background:#4caf6b;
+    color:#fff;
+    border-color:#2f7a45;
+  }
+  .quiz-question{
+    font-size:28px;
+    font-weight:800;
+    color:var(--cream);
+    margin-bottom:16px;
+    text-shadow:0 1px 3px rgba(0,0,0,0.5);
+  }
+  .quiz-options{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-bottom:10px;
+  }
+  .quiz-opt{
+    background:var(--tile);
+    color:var(--ink);
+    border:none;
+    border-radius:12px;
+    padding:14px 6px;
+    font-size:19px;
+    font-weight:700;
+    cursor:pointer;
+    box-shadow:0 3px 0 var(--tile-shadow);
+  }
+  .quiz-opt:active{ transform:translateY(2px); box-shadow:none; }
+  .quiz-opt:disabled{ opacity:0.6; cursor:not-allowed; }
+  .quiz-feedback{
+    min-height:24px;
+    font-size:16px;
+    font-weight:700;
+  }
+  .quiz-feedback.good{ color:#8fe6ab; }
+  .quiz-feedback.bad{ color:#ff8fa3; }
+
+  /* Praise words */
+  .praise{ position:fixed; left:50%; top:24%; font-weight:900; font-size:34px; color:#fff;
+    -webkit-text-stroke:2px #c2447e; text-shadow:0 3px 0 #8a1a54, 0 0 18px rgba(255,230,109,0.9);
+    pointer-events:none; z-index:55; white-space:nowrap; animation: praisePop 1.4s ease-out forwards; }
+  .praise.t2{ font-size:42px; }
+  .praise.t3{ font-size:50px; color:#ffe66d; }
+  @keyframes praisePop{
+    0%  { transform:translate(-50%,-50%) scale(0.3) rotate(-8deg); opacity:0; }
+    20% { transform:translate(-50%,-50%) scale(1.15) rotate(3deg); opacity:1; }
+    35% { transform:translate(-50%,-50%) scale(1) rotate(0deg); }
+    80% { transform:translate(-50%,-55%) scale(1); opacity:1; }
+    100%{ transform:translate(-50%,-90%) scale(1.05); opacity:0; }
+  }
+
+  /* Rainbow tile — matches any number */
+  .cell.number.rainbow{
+    background:linear-gradient(135deg,#ff5f6d,#ffc371,#fff176,#69f0ae,#40c4ff,#b388ff);
+    background-size:300% 300%;
+    animation: rainbowShift 2.4s ease-in-out infinite alternate;
+    font-size:clamp(16px, 5vw, 26px);
+  }
+  @keyframes rainbowShift{ 0%{background-position:0% 50%} 100%{background-position:100% 50%} }
+
+  /* Line-clear laser beams */
+  .laser{ position:absolute; pointer-events:none; z-index:8; border-radius:3px;
+    box-shadow:0 0 12px 4px rgba(255,77,157,0.85), 0 0 26px 8px rgba(255,230,109,0.5);
+    animation: laserFlash 1s ease-out forwards; }
+  .laser-h{ height:6px; transform:translateY(-50%);
+    background:linear-gradient(90deg, transparent, #fff 15%, #ff4d9d 50%, #fff 85%, transparent); }
+  .laser-v{ width:6px; transform:translateX(-50%);
+    background:linear-gradient(180deg, transparent, #fff 15%, #ff4d9d 50%, #fff 85%, transparent); }
+  .laser-spark{ position:absolute; width:24px; height:24px; border-radius:50%;
+    background:radial-gradient(circle, #fff, #ffe66d 40%, rgba(255,77,157,0) 70%); }
+  .laser-h .laser-spark{ top:50%; transform:translate(-50%,-50%); animation: zipH 1s ease-in-out forwards; }
+  .laser-v .laser-spark{ left:50%; transform:translate(-50%,-50%); animation: zipV 1s ease-in-out forwards; }
+  @keyframes zipH{ 0%{left:0%} 50%{left:100%} 100%{left:0%} }
+  @keyframes zipV{ 0%{top:0%} 50%{top:100%} 100%{top:0%} }
+  @keyframes laserFlash{ 0%{opacity:0} 10%{opacity:1} 80%{opacity:1} 100%{opacity:0} }
+
+  .shop-points{ font-size:13px; color:#fff; text-align:center; margin-bottom:2px; }
+  .shop-points b{ color:#ffe66d; }
+
+  /* Squishy shop / crystal collection */
+  .shop-card{
+    max-width:420px;
+    max-height:88vh;
+    display:flex;
+    flex-direction:column;
+  }
+  .shop-tabs{
+    display:flex;
+    gap:8px;
+    margin-bottom:10px;
+  }
+  .shop-tab{
+    flex:1;
+    padding:8px;
+    border-radius:10px;
+    border:2px solid transparent;
+    background:rgba(255,255,255,0.15);
+    color:#fff;
+    font-weight:700;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .shop-tab.active{
+    background:var(--tile);
+    color:var(--ink);
+    border-color:#3a0b28;
+  }
+  .shop-body{
+    overflow-y:auto;
+    max-height:52vh;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    padding:4px;
+    margin-bottom:12px;
+  }
+  .shop-item{
+    background:rgba(0,0,0,0.25);
+    border-radius:12px;
+    padding:8px;
+    text-align:center;
+    border:2px solid rgba(255,255,255,0.15);
+  }
+  .shop-item.owned{
+    border-color:#ffe66d;
+  }
+  .shop-item svg{ width:64px; height:64px; }
+  .shop-item .item-name{ font-size:12px; font-weight:700; color:#fff; margin-top:2px; }
+  .shop-item .item-rarity{ font-size:10px; color:#ffd166; }
+  .shop-item .item-price{ font-size:13px; font-weight:800; color:#ffe66d; margin-top:2px; }
+  .shop-item button{
+    margin-top:6px;
+    width:100%;
+    padding:6px;
+    border-radius:8px;
+    border:none;
+    background:var(--tile);
+    color:var(--ink);
+    font-weight:700;
+    font-size:12px;
+    cursor:pointer;
+  }
+  .shop-item button:disabled{ opacity:0.5; cursor:not-allowed; }
+  .shop-open-btn{ order:1; }
+  .checkout-info{
+    font-size:14px;
+    color:#fff;
+    margin-bottom:10px;
+    line-height:1.5;
+  }
+  .checkout-info b{ color:#ffe66d; }
+
+  /* Installed app: keep clear of the notch, status bar and home indicator */
+  #app{
+    padding-top: max(14px, env(safe-area-inset-top));
+    padding-bottom: max(28px, env(safe-area-inset-bottom));
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+  #loveToast{ padding-top: calc(18px + env(safe-area-inset-top)); }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="badge">
+      <div class="label">SCORE</div>
+      <div class="value" id="score">0</div>
+    </div>
+    <span id="multiplierBadge" class="multiplier-badge hidden">×2!</span>
+    <h1>✨ Taylor Swift Times Tables 💖</h1>
+    <div class="badge">
+      <div class="label">LEFT</div>
+      <div class="value" id="remaining">0</div>
+    </div>
+  </header>
+
+  <div class="target-row">
+    <span class="tlabel">Level</span>
+    <span class="tval" id="levelVal">1</span>
+    <span class="tlabel">·</span>
+    <span class="tlabel">Times table:</span>
+    <span class="tval" id="targetVal">×5</span>
+    <span id="streakBadge" class="streak-badge hidden">🔥 <span id="streakVal">0</span></span>
+  </div>
+
+  <div id="msg">&nbsp;</div>
+
+  <div class="grid-wrap">
+    <div id="grid"></div>
+    <div id="floaters"></div>
+  </div>
+
+  <div class="target-row">
+    <span class="tlabel">🔀 Shuffle tokens:</span>
+    <span class="tval" id="shuffleCount">0</span>
+    <span class="tlabel">(earned by matching through a heart)</span>
+  </div>
+
+  <footer>
+    <button class="btn" id="newBoard">New Board</button>
+    <button class="btn secondary" id="shuffle">Shuffle Left</button>
+    <button class="btn shop-open-btn" id="openShopBtn">🧸 Shop</button>
+    <button class="btn secondary" id="openSettingsBtn" aria-label="Settings">⚙️</button>
+  </footer>
+
+  <details id="rules">
+    <summary>How to play (tap to expand)</summary>
+    Tap two tiles where one is the other multiplied by the times table shown
+    above (e.g. with ×5: 3 and 15, or 6 and 30). They must be in the same
+    row, column, or a straight diagonal, with no other tile blocking the
+    path between them — cleared spaces AND hearts don't block, so a match can
+    connect straight through a heart. Do that and the heart pops for +10
+    (watch it float to the top of the board) plus a shuffle token, for each
+    heart crossed. The board wraps around on every edge (left-right
+    and top-bottom, including diagonals). Clear every number in a row to pop
+    its hearts for bonus points. Shuffling the remaining tiles costs one
+    shuffle token — no tokens, no shuffle — and tokens reset whenever a new
+    board is generated. Pressing New Board means answering 5 random times-table
+    questions correctly first (one mistake just re-asks the question, but a
+    second mistake restarts the whole set of 5), then
+    spinning a wheel to pick the next table — no skipping either step. Out of
+    shuffle tokens? The same 5-question quiz earns you one shuffle. After a
+    match, everything above the gap — numbers and hearts alike — falls down
+    to fill it. Every so often a match triggers a quick bonus question about
+    that exact fact (sometimes flipped, sometimes as division) — get it right
+    for extra points.
+  </details>
+</div>
+
+<div id="spinOverlay" class="hidden">
+  <div class="spin-card">
+    <h2>Spin for your times table!</h2>
+    <div class="wheel-wrap">
+      <div class="wheel-pointer"></div>
+      <div id="wheel"></div>
+      <div class="wheel-hub"></div>
+    </div>
+    <div id="spinResult">&nbsp;</div>
+    <button class="btn" id="spinBtn">SPIN</button>
+  </div>
+</div>
+
+<div id="quizOverlay" class="hidden">
+  <div class="spin-card">
+    <h2>Answer 5 to earn it!</h2>
+    <div class="quiz-progress" id="quizProgress"></div>
+    <div class="quiz-question" id="quizQuestion">&nbsp;</div>
+    <div class="quiz-options" id="quizOptions"></div>
+    <div class="quiz-feedback" id="quizFeedback">&nbsp;</div>
+  </div>
+</div>
+
+<div id="levelCompleteOverlay" class="hidden">
+  <div class="spin-card">
+    <div class="love-hearts">🎉💖🎉</div>
+    <div class="love-title">LEVEL COMPLETE!</div>
+    <div class="love-message">Well done Freya, you're so good at this.</div>
+  </div>
+</div>
+
+<div id="bonusQuizOverlay" class="hidden">
+  <div class="spin-card">
+    <h2>⭐ Bonus Question! ⭐</h2>
+    <div class="quiz-question" id="bonusQuestion">&nbsp;</div>
+    <div class="dot-area hidden" id="bonusDots">
+      <div class="dot-groups" id="bonusDotGroups"></div>
+      <div class="dot-count" id="bonusDotCount">&nbsp;</div>
+      <div class="dot-trail" id="bonusDotTrail">&nbsp;</div>
+    </div>
+    <div class="quiz-options" id="bonusOptions"></div>
+    <div class="quiz-feedback" id="bonusFeedback">&nbsp;</div>
+  </div>
+</div>
+
+<div id="settingsOverlay" class="hidden">
+  <div class="spin-card">
+    <h2>⚙️ Settings</h2>
+    <div class="settings-note">Tick which times tables can come up on the wheel and in quiz questions. The current board keeps its table; changes apply from the next spin.</div>
+    <div class="table-grid" id="tableGrid"></div>
+    <div class="settings-section">Effects</div>
+    <button type="button" class="table-chip settings-toggle" id="spinToggle"></button>
+    <div class="quiz-feedback bad" id="settingsWarning">&nbsp;</div>
+    <div class="settings-actions">
+      <button class="btn secondary" id="settingsCancelBtn">Cancel</button>
+      <button class="btn" id="settingsSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="shopOverlay" class="hidden">
+  <div class="spin-card shop-card">
+    <h2>🧸💎 My Collection</h2>
+    <div class="shop-tabs">
+      <button class="shop-tab active" id="tabSquishies">🧸 Squishies</button>
+      <button class="shop-tab" id="tabCrystals">💎 Crystals</button>
+    </div>
+    <div id="shopBody" class="shop-body"></div>
+    <button class="btn secondary" id="closeShopBtn">Close</button>
+  </div>
+</div>
+
+<div id="checkoutOverlay" class="hidden">
+  <div class="spin-card">
+    <h2>🛍️ Checkout</h2>
+    <div id="checkoutInfo" class="checkout-info">&nbsp;</div>
+    <div class="quiz-question" id="checkoutQuestion">&nbsp;</div>
+    <div class="quiz-options" id="checkoutOptions"></div>
+    <div class="quiz-feedback" id="checkoutFeedback">&nbsp;</div>
+    <button class="btn secondary" id="checkoutBackBtn" style="margin-top:10px">Back to shop</button>
+  </div>
+</div>
+
+<div id="confetti"></div>
+
+<div id="loveToast" class="hidden">
+  <div class="love-card">
+    <div class="love-title">Freya! Your Dad sent you a message!</div>
+    <div class="love-hearts">💕✨💕</div>
+    <div class="love-message" id="loveMessage"></div>
+    <div class="love-reward" id="loveReward"></div>
+    <button class="btn love-dismiss" id="loveDismissBtn">I love you too Daddy! 💗</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const ROWS = 8, COLS = 9;
+  let multiplier = 5;
+  let score = 0;
+  let level = 1;
+  let shuffleTokens = 0; // earned by matching through a jewel; resets on a new board
+  let scoreMultiplier = 1; // doubles when 2+ hearts are crossed in one match
+  let grid = []; // grid[r][c] = {type:'number'|'jewel'|'empty', value}
+  let selected = null; // {r,c}
+  const gridEl = document.getElementById('grid');
+  const gridWrapEl = document.querySelector('.grid-wrap');
+  const floatersEl = document.getElementById('floaters');
+  const scoreEl = document.getElementById('score');
+  const levelEl = document.getElementById('levelVal');
+  const multiplierBadgeEl = document.getElementById('multiplierBadge');
+  const streakBadgeEl = document.getElementById('streakBadge');
+  const streakValEl = document.getElementById('streakVal');
+  const remEl = document.getElementById('remaining');
+  const targetEl = document.getElementById('targetVal');
+  const msgEl = document.getElementById('msg');
+  const shuffleCountEl = document.getElementById('shuffleCount');
+  const shuffleBtn = document.getElementById('shuffle');
+  const spinOverlay = document.getElementById('spinOverlay');
+  const wheelEl = document.getElementById('wheel');
+  const spinBtn = document.getElementById('spinBtn');
+  const spinResultEl = document.getElementById('spinResult');
+  const quizOverlay = document.getElementById('quizOverlay');
+  const quizProgressEl = document.getElementById('quizProgress');
+  const quizQuestionEl = document.getElementById('quizQuestion');
+  const quizOptionsEl = document.getElementById('quizOptions');
+  const quizFeedbackEl = document.getElementById('quizFeedback');
+  const levelCompleteOverlay = document.getElementById('levelCompleteOverlay');
+  const bonusQuizOverlay = document.getElementById('bonusQuizOverlay');
+  const bonusQuestionEl = document.getElementById('bonusQuestion');
+  const bonusOptionsEl = document.getElementById('bonusOptions');
+  const bonusFeedbackEl = document.getElementById('bonusFeedback');
+  const loveToastEl = document.getElementById('loveToast');
+  const loveMessageEl = document.getElementById('loveMessage');
+  const loveRewardEl = document.getElementById('loveReward');
+  const shopOverlay = document.getElementById('shopOverlay');
+  const shopBodyEl = document.getElementById('shopBody');
+  const tabSquishiesBtn = document.getElementById('tabSquishies');
+  const tabCrystalsBtn = document.getElementById('tabCrystals');
+  const checkoutOverlay = document.getElementById('checkoutOverlay');
+  const checkoutInfoEl = document.getElementById('checkoutInfo');
+  const checkoutQuestionEl = document.getElementById('checkoutQuestion');
+  const checkoutOptionsEl = document.getElementById('checkoutOptions');
+  const checkoutFeedbackEl = document.getElementById('checkoutFeedback');
+
+  // ---------- Collectibles: Squishy bears (bought with points) and Rock
+  // Crystals (rare drops from crystal jewels in the grid) ----------
+
+  // Original cute bear-face art (not any existing character) — parameterized
+  // so each squishy just needs a couple of colors.
+  function bearSVG(main, accent, sparkle){
+    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="22" cy="26" r="15" fill="${main}"/>
+      <circle cx="78" cy="26" r="15" fill="${main}"/>
+      <circle cx="22" cy="26" r="7" fill="${accent}"/>
+      <circle cx="78" cy="26" r="7" fill="${accent}"/>
+      <circle cx="50" cy="56" r="36" fill="${main}"/>
+      <ellipse cx="50" cy="66" rx="17" ry="13" fill="${accent}"/>
+      <circle cx="39" cy="50" r="4.5" fill="#2b1c12"/>
+      <circle cx="61" cy="50" r="4.5" fill="#2b1c12"/>
+      <ellipse cx="50" cy="64" rx="4.5" ry="3.2" fill="#2b1c12"/>
+      ${sparkle ? '<text x="78" y="86" font-size="22">✨</text><text x="10" y="30" font-size="16">✨</text>' : ''}
+    </svg>`;
+  }
+  // Original faceted-gem art for the crystal collection.
+  function crystalSVG(main, light){
+    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="50,8 88,38 72,92 28,92 12,38" fill="${main}" stroke="#3a0b28" stroke-width="3" stroke-linejoin="round"/>
+      <polygon points="50,8 88,38 50,46" fill="${light}" opacity="0.75"/>
+      <polygon points="50,46 72,92 28,92" fill="${light}" opacity="0.35"/>
+      <line x1="50" y1="8" x2="50" y2="92" stroke="#3a0b28" stroke-width="1.5" opacity="0.4"/>
+    </svg>`;
+  }
+
+  const SQUISHY_CATALOG = [
+    { id:'cocoa',    name:'Cocoa Bear',      price:80,  rarity:'Common',    main:'#a5723a', accent:'#f4d9b0' },
+    { id:'bubble',   name:'Bubblegum Bear',  price:100, rarity:'Common',    main:'#ff8fc2', accent:'#ffe3f1' },
+    { id:'sunny',    name:'Sunny Bear',      price:120, rarity:'Common',    main:'#ffd166', accent:'#fff3d1' },
+    { id:'minty',    name:'Minty Bear',      price:150, rarity:'Uncommon',  main:'#6fcf97', accent:'#e2f9ec' },
+    { id:'ocean',    name:'Ocean Bear',      price:200, rarity:'Uncommon',  main:'#4fa3d1', accent:'#dcf1fb' },
+    { id:'berry',    name:'Berry Bear',      price:250, rarity:'Uncommon',  main:'#9b6fd1', accent:'#efe3fb' },
+    { id:'sunset',   name:'Sunset Bear',     price:350, rarity:'Rare',      main:'#ff7a52', accent:'#ffd9c9' },
+    { id:'starlight',name:'Starlight Bear',  price:500, rarity:'Rare',      main:'#c9cfe8', accent:'#ffffff', sparkle:true },
+    { id:'rainbow',  name:'Rainbow Bear',    price:800, rarity:'Ultra Rare',main:'#ff6fae', accent:'#ffd166', sparkle:true }
+  ];
+
+  const CRYSTAL_CATALOG = [
+    { id:'quartz',   name:'Clear Quartz',   rarity:'Common',    weight:30, main:'#e8e8f0', light:'#ffffff' },
+    { id:'rose',     name:'Rose Quartz',    rarity:'Common',    weight:30, main:'#f2b8c6', light:'#fde4ea' },
+    { id:'citrine',  name:'Citrine',        rarity:'Common',    weight:30, main:'#f4c542', light:'#fbe6a3' },
+    { id:'amethyst', name:'Amethyst',       rarity:'Uncommon',  weight:16, main:'#9b6fd1', light:'#d9c4f2' },
+    { id:'aqua',     name:'Aquamarine',     rarity:'Uncommon',  weight:16, main:'#4fd1c5', light:'#c3f2ed' },
+    { id:'ruby',     name:'Ruby',           rarity:'Rare',      weight:6,  main:'#d1364f', light:'#f2a6b3' },
+    { id:'sapphire', name:'Sapphire',       rarity:'Rare',      weight:6,  main:'#2a5fd1', light:'#a9c1f2' },
+    { id:'prism',    name:'Rainbow Prism',  rarity:'Ultra Rare',weight:2,  main:'#ff8fc2', light:'#ffe66d' }
+  ];
+  const CRYSTAL_JEWEL_CHANCE = 0.3; // chance a board has one rare crystal jewel
+
+  let ownedSquishies = {};   // { squishyId: true }
+  let ownedCrystals = {};    // { crystalId: count }
+  let streak = 0;            // consecutive first-try-correct bonus answers
+
+  function pickRandomCrystal(){
+    const totalWeight = CRYSTAL_CATALOG.reduce((sum,c)=>sum+c.weight, 0);
+    let roll = Math.random() * totalWeight;
+    for(const c of CRYSTAL_CATALOG){
+      roll -= c.weight;
+      if(roll <= 0) return c;
+    }
+    return CRYSTAL_CATALOG[0];
+  }
+
+  // Times tables offered on the wheel — keep this in sync with any other
+  // place tables are chosen (the manual stepper, the quiz questions).
+  // Enabled times tables come from Settings (saved in this browser).
+  const ALL_TABLES = [2,3,4,5,6,7,8,9,10,11,12];
+  const DEFAULT_TABLES = [2,3,4,5,6,7,8,9,11,12];
+  const SETTINGS_KEY = 'ttt_settings_v2';
+  function loadEnabledTables(){
+    try{
+      const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null');
+      if(saved && Array.isArray(saved.tables)){
+        const valid = saved.tables.filter(t => ALL_TABLES.includes(t)).sort((a,b)=>a-b);
+        if(valid.length) return valid;
+      }
+    } catch(e){}
+    return DEFAULT_TABLES.slice();
+  }
+  let WHEEL_VALUES = loadEnabledTables();
+  function loadSpinSetting(){
+    try{
+      const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null');
+      return !!(saved && saved.spinJewels);
+    } catch(e){ return false; }
+  }
+  let spinJewels = loadSpinSetting(); // off by default — can be distracting
+  document.body.classList.toggle('spin-jewels', spinJewels);
+  const WHEEL_COLORS = ['#ff8fc2','#ffd166'];
+  let wheelRotation = 0;
+  let spinPhase = 'idle'; // 'idle' | 'spinning' | 'done'
+  let pendingMultiplier = null;
+
+  function buildWheel(){
+    wheelEl.innerHTML = '';
+    const n = WHEEL_VALUES.length;
+    const step = 360 / n;
+    const stops = WHEEL_VALUES.map((v,i)=>{
+      const color = (n % 2 === 1 && n > 1 && i === n-1) ? '#b388ff' : WHEEL_COLORS[i % WHEEL_COLORS.length];
+      return `${color} ${i*step}deg ${(i+1)*step}deg`;
+    }).join(', ');
+    wheelEl.style.background = `conic-gradient(${stops})`;
+    WHEEL_VALUES.forEach((v,i)=>{
+      const center = i*step + step/2;
+      const label = document.createElement('div');
+      label.className = 'wheel-label';
+      label.style.transform = `rotate(${center}deg) translate(0, -82px)`;
+      const span = document.createElement('span');
+      span.textContent = '×' + v;
+      label.appendChild(span);
+      wheelEl.appendChild(label);
+    });
+  }
+  buildWheel();
+
+  let spinnerResetsProgress = true;
+  let scoreBaselineForReset = 0;
+  let tokensBaselineForReset = 0;
+  function openSpinner(resetProgress = true){
+    spinnerResetsProgress = resetProgress;
+    spinPhase = 'idle';
+    pendingMultiplier = null;
+    spinResultEl.innerHTML = '&nbsp;';
+    spinBtn.textContent = 'SPIN';
+    spinBtn.disabled = false;
+    spinOverlay.classList.remove('hidden');
+  }
+
+  function startSpin(){
+    if(spinPhase !== 'idle') return;
+    spinPhase = 'spinning';
+    spinBtn.disabled = true;
+    spinResultEl.innerHTML = '&nbsp;';
+    const n = WHEEL_VALUES.length;
+    const step = 360 / n;
+    const idx = rand(n);
+    const chosen = WHEEL_VALUES[idx];
+    const center = idx*step + step/2;
+    const targetAngle = ((360 - center) % 360 + 360) % 360;
+    const spins = 5 + rand(3); // 5-7 full spins for a satisfying spin
+    const currentMod = ((wheelRotation % 360) + 360) % 360;
+    const delta = ((targetAngle - currentMod) % 360 + 360) % 360;
+    wheelRotation += delta + spins*360;
+    wheelEl.style.transform = `rotate(${wheelRotation}deg)`;
+
+    const onEnd = ()=>{
+      wheelEl.removeEventListener('transitionend', onEnd);
+      spinPhase = 'done';
+      pendingMultiplier = chosen;
+      spinResultEl.textContent = `×${chosen} times table!`;
+      spinBtn.disabled = false;
+      spinBtn.textContent = `Play ×${chosen} Board`;
+    };
+    wheelEl.addEventListener('transitionend', onEnd);
+  }
+
+  function confirmSpin(){
+    if(spinPhase !== 'done' || pendingMultiplier === null) return;
+    multiplier = pendingMultiplier;
+    spinOverlay.classList.add('hidden');
+    if(spinnerResetsProgress){
+      score = Math.max(0, score - scoreBaselineForReset);
+      shuffleTokens = Math.max(0, shuffleTokens - tokensBaselineForReset);
+      scoreMultiplier = 1;
+    }
+    msgEl.textContent = `New board — ×${multiplier} times table!`;
+    level++;
+    buildGrid();
+  }
+
+  spinBtn.addEventListener('click', ()=>{
+    if(spinPhase === 'idle') startSpin();
+    else if(spinPhase === 'done') confirmSpin();
+  });
+
+  // --- Times-table quiz gate: 5 random questions to unlock a new board or a shuffle ---
+  // Tiny Web Audio helpers for a perfect-run celebration sound. This is an
+  // original little fanfare (a rising arpeggio + chord) — not a rendition of
+  // any copyrighted song, just a generic "you did it!" jingle.
+  let audioCtx = null;
+  function ensureAudioContext(){
+    if(!audioCtx){
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if(!Ctx) return null;
+      audioCtx = new Ctx();
+    }
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+
+  // Best-effort device-tilt gravity: if the phone's orientation sensor is
+  // available and permitted, tilting left/right nudges which way the heart
+  // pile drifts. Published pages run in a sandboxed iframe, so the sensor
+  // permission is very likely blocked by the host page — this fails silently
+  // and the hearts just fall straight down as normal in that case.
+  let gravityBiasX = 0;
+  let deviceTiltAttempted = false;
+  function handleDeviceTilt(event){
+    if(event.gamma == null) return;
+    const clamped = Math.max(-45, Math.min(45, event.gamma));
+    gravityBiasX = (clamped / 45) * 0.22; // gentle sideways bias, not a full rewrite of gravity
+  }
+  function tryEnableDeviceTiltGravity(){
+    if(deviceTiltAttempted) return;
+    deviceTiltAttempted = true;
+    try{
+      if(typeof DeviceOrientationEvent === 'undefined') return;
+      if(typeof DeviceOrientationEvent.requestPermission === 'function'){
+        DeviceOrientationEvent.requestPermission()
+          .then(state => { if(state === 'granted') window.addEventListener('deviceorientation', handleDeviceTilt); })
+          .catch(()=>{}); // permission denied or blocked — silently keep straight-down gravity
+      } else {
+        window.addEventListener('deviceorientation', handleDeviceTilt);
+      }
+    } catch(e){ /* sensor unavailable — silently keep straight-down gravity */ }
+  }
+  function playTone(ctx, freq, startTime, duration, gainPeak){
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(gainPeak, startTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(startTime);
+    osc.stop(startTime + duration + 0.02);
+  }
+  function playPerfectFanfare(){
+    const ctx = ensureAudioContext();
+    if(!ctx) return;
+    const now = ctx.currentTime;
+    const arpeggio = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+    arpeggio.forEach((freq, i)=> playTone(ctx, freq, now + i*0.12, 0.28, 0.22));
+    playTone(ctx, 1046.50, now + 0.52, 0.55, 0.18); // C6
+    playTone(ctx, 1318.51, now + 0.52, 0.55, 0.14); // E6
+    playTone(ctx, 1567.98, now + 0.52, 0.55, 0.12); // G6
+  }
+
+  const quizState = { questions: [], index: 0, errors: 0, onComplete: null };
+
+  function buildQuizQuestions(n){
+    const qs = [];
+    for(let i=0;i<n;i++){
+      const table = WHEEL_VALUES[rand(WHEEL_VALUES.length)];
+      const factor = 1 + rand(12);  // 1..12
+      const correct = table * factor;
+      const options = new Set([correct]);
+      while(options.size < 4){
+        const spread = 1 + rand(table);
+        const candidate = correct + (rand(2)===0 ? spread : -spread);
+        if(candidate > 0) options.add(candidate);
+      }
+      const optArr = Array.from(options);
+      for(let k=optArr.length-1;k>0;k--){
+        const j = rand(k+1);
+        [optArr[k],optArr[j]] = [optArr[j],optArr[k]];
+      }
+      qs.push({table, factor, correct, options: optArr});
+    }
+    return qs;
+  }
+
+  function openQuiz(onComplete){
+    quizState.questions = buildQuizQuestions(5);
+    quizState.index = 0;
+    quizState.errors = 0;
+    quizState.onComplete = onComplete;
+    renderQuizProgress();
+    renderQuizQuestion();
+    quizOverlay.classList.remove('hidden');
+  }
+
+  function renderQuizProgress(){
+    quizProgressEl.innerHTML = '';
+    quizState.questions.forEach((q,i)=>{
+      const dot = document.createElement('div');
+      dot.className = 'quiz-dot' + (i < quizState.index ? ' done' : (i === quizState.index ? ' active' : ''));
+      dot.textContent = i < quizState.index ? '✓' : (i+1);
+      quizProgressEl.appendChild(dot);
+    });
+  }
+
+  function renderQuizQuestion(){
+    const q = quizState.questions[quizState.index];
+    quizQuestionEl.textContent = `${q.table} × ${q.factor} = ?`;
+    quizFeedbackEl.innerHTML = '&nbsp;';
+    quizFeedbackEl.className = 'quiz-feedback';
+    quizOptionsEl.innerHTML = '';
+    q.options.forEach(opt=>{
+      const btn = document.createElement('button');
+      btn.className = 'quiz-opt';
+      btn.textContent = opt;
+      btn.addEventListener('click', ()=> answerQuiz(opt, q));
+      quizOptionsEl.appendChild(btn);
+    });
+  }
+
+  function answerQuiz(selectedValue, q){
+    ensureAudioContext(); // unlock audio on this user gesture, for the later fanfare
+    const correct = selectedValue === q.correct;
+    quizFeedbackEl.textContent = correct ? '✓ Correct!' : '✗ Try again!';
+    quizFeedbackEl.className = 'quiz-feedback ' + (correct ? 'good' : 'bad');
+    Array.from(quizOptionsEl.children).forEach(b => b.disabled = true);
+    if(!correct) quizState.errors++;
+    setTimeout(()=>{
+      if(correct){
+        quizState.index++;
+        if(quizState.index >= quizState.questions.length){
+          finishQuiz();
+        } else {
+          renderQuizProgress();
+          renderQuizQuestion();
+        }
+      } else if(quizState.errors >= 2){
+        restartQuiz();
+      } else {
+        renderQuizQuestion(); // one mistake is forgiven — same question again
+      }
+    }, correct ? 700 : 900);
+  }
+
+  function restartQuiz(){
+    quizState.questions = buildQuizQuestions(5);
+    quizState.index = 0;
+    quizState.errors = 0;
+    quizFeedbackEl.textContent = 'Two misses — let\'s start fresh!';
+    quizFeedbackEl.className = 'quiz-feedback bad';
+    renderQuizProgress();
+    setTimeout(renderQuizQuestion, 200);
+  }
+
+  function finishQuiz(){
+    renderQuizProgress();
+    quizOverlay.classList.add('hidden');
+    if(quizState.errors === 0) playPerfectFanfare();
+    const cb = quizState.onComplete;
+    quizState.onComplete = null;
+    if(cb) cb();
+  }
+
+  // Bonus round tied to the exact match just made — reinforces real recall
+  // (not just tile recognition) by randomizing which number is missing:
+  // factor×table, table×factor, or dividing by the table. Frequency ramps
+  // up gradually across a board (not a sudden step) and stays maxed out
+  // once it hits 100%, so as the board thins out and matches get harder to
+  // find, the bonus rounds fill in the gap and keep the pacing steady.
+  const BONUS_QUIZ_RAMP = [0, 0.10, 0.25, 0.50, 0.80, 0.92, 0.97, 1.0];
+  const BONUS_QUIZ_POINTS = 30;
+  let matchesThisBoard = 0;
+  const bonusQuiz = { chosen: null, wrongAttempts: 0, countdownId: null };
+
+  // Celebrations queued while a bonus question is on screen, played once
+  // it's answered.
+  let bonusActive = false;
+  const afterBonusQueue = [];
+  function whenBonusClear(fn){
+    if(bonusActive) afterBonusQueue.push(fn);
+    else fn();
+  }
+  function flushAfterBonus(){
+    bonusActive = false;
+    afterBonusQueue.splice(0).forEach(fn => fn());
+  }
+
+  function maybeTriggerBonusQuiz(factor, table, product){
+    matchesThisBoard++;
+    const idx = Math.min(matchesThisBoard - 1, BONUS_QUIZ_RAMP.length - 1);
+    const chance = BONUS_QUIZ_RAMP[idx];
+    if(Math.random() >= chance) return;
+    const forms = [
+      { q: `${factor} × ${table} = ?`, answer: product },
+      { q: `${table} × ${factor} = ?`, answer: product },
+      { q: `${product} ÷ ${table} = ?`, answer: factor }
+    ];
+    bonusQuiz.chosen = forms[rand(forms.length)];
+    bonusQuiz.chosen.spreadBase = Math.max(table, 3);
+    Object.assign(bonusQuiz.chosen, { factor, table, product, isDivision: bonusQuiz.chosen.q.includes('÷') });
+    bonusQuiz.wrongAttempts = 0;
+    renderBonusQuestion();
+    bonusActive = true;
+    bonusQuizOverlay.classList.remove('hidden');
+  }
+
+  function buildBonusOptions(chosen){
+    const options = new Set([chosen.answer]);
+    while(options.size < 4){
+      const spread = 1 + rand(chosen.spreadBase);
+      const candidate = chosen.answer + (rand(2)===0 ? spread : -spread);
+      if(candidate > 0) options.add(candidate);
+    }
+    const arr = Array.from(options);
+    for(let k=arr.length-1;k>0;k--){
+      const j = rand(k+1);
+      [arr[k],arr[j]] = [arr[j],arr[k]];
+    }
+    return arr;
+  }
+
+  function renderBonusQuestion(){
+    const chosen = bonusQuiz.chosen;
+    if(bonusQuiz.wrongAttempts > 0) showDotsForRetry();
+    else hideCountAlongDots();
+    bonusQuestionEl.textContent = chosen.q;
+    bonusFeedbackEl.innerHTML = '&nbsp;';
+    bonusFeedbackEl.className = 'quiz-feedback';
+    bonusOptionsEl.style.display = '';
+    bonusOptionsEl.innerHTML = '';
+    buildBonusOptions(chosen).forEach(opt=>{
+      const btn = document.createElement('button');
+      btn.className = 'quiz-opt';
+      btn.textContent = opt;
+      btn.addEventListener('click', ()=> answerBonusQuiz(opt));
+      bonusOptionsEl.appendChild(btn);
+    });
+  }
+
+  function answerBonusQuiz(selectedValue){
+    ensureAudioContext();
+    const chosen = bonusQuiz.chosen;
+    const correct = selectedValue === chosen.answer;
+    Array.from(bonusOptionsEl.children).forEach(b => b.disabled = true);
+    if(correct){
+      streak = (bonusQuiz.wrongAttempts === 0) ? streak + 1 : 0;
+      const streakBonus = Math.min(streak * 5, 100);
+      const bonus = (BONUS_QUIZ_POINTS + streakBonus) * scoreMultiplier;
+      score += bonus;
+      bonusFeedbackEl.textContent = streak > 1
+        ? `✓ Correct! +${bonus} bonus — 🔥 streak ${streak}!`
+        : `✓ Correct! +${bonus} bonus`;
+      bonusFeedbackEl.className = 'quiz-feedback good';
+      render();
+      spawnHeartFireworks();
+      if(streak >= 3) spawnPraise(streak >= 8 ? 4 : streak >= 5 ? 2 : 1, streak >= 5 ? `${streak} in a row!` : null);
+      setTimeout(()=>{ bonusQuizOverlay.classList.add('hidden'); flushAfterBonus(); }, 1100);
+    } else {
+      bonusQuiz.wrongAttempts++;
+      streak = 0;
+      render();
+      const lingerSeconds = bonusQuiz.wrongAttempts === 1 ? 5 : 10;
+      startBonusAnswerCountdown(chosen.answer, lingerSeconds);
+    }
+  }
+
+  // Active wait: the fact drawn as groups of dots that light up one group at
+  // a time while the running count appears, so the wait is spent learning.
+  // Multiplication skip-counts the total (5, 10, 15 ... 35); division counts
+  // the groups (1 group, 2 groups ... 7 groups).
+  const bonusDotsEl = document.getElementById('bonusDots');
+  const bonusDotGroupsEl = document.getElementById('bonusDotGroups');
+  const bonusDotCountEl = document.getElementById('bonusDotCount');
+  const bonusDotTrailEl = document.getElementById('bonusDotTrail');
+  let dotTimers = [];
+  function hideCountAlongDots(){
+    dotTimers.forEach(clearTimeout);
+    dotTimers = [];
+    bonusDotsEl.classList.add('hidden');
+  }
+  function showCountAlongDots(seconds){
+    hideCountAlongDots();
+    const { factor, table, product, isDivision } = bonusQuiz.chosen;
+    if(!factor || !table) return;
+    const cols = table <= 6 ? table : Math.ceil(table / 2);
+    bonusDotGroupsEl.innerHTML = '';
+    const groups = [];
+    for(let g=0; g<factor; g++){
+      const box = document.createElement('div');
+      box.className = 'dot-group';
+      box.style.gridTemplateColumns = `repeat(${cols}, 9px)`;
+      for(let d=0; d<table; d++){
+        const dot = document.createElement('div');
+        dot.className = 'dot';
+        box.appendChild(dot);
+      }
+      bonusDotGroupsEl.appendChild(box);
+      groups.push(box);
+    }
+    bonusDotCountEl.innerHTML = '&nbsp;';
+    bonusDotTrailEl.textContent = isDivision
+      ? `Split ${product} into groups of ${table}. How many groups?`
+      : `${factor} groups of ${table} — count along!`;
+    bonusDotsEl.classList.remove('hidden');
+
+    const stepMs = Math.max(300, (seconds * 1000 - 1200) / factor);
+    const trail = [];
+    groups.forEach((box, i)=>{
+      dotTimers.push(setTimeout(()=>{
+        box.classList.add('lit');
+        if(isDivision){
+          bonusDotCountEl.textContent = `${i+1} group${i ? 's' : ''}`;
+        } else {
+          trail.push(table * (i+1));
+          bonusDotCountEl.textContent = table * (i+1);
+          bonusDotTrailEl.textContent = trail.join(', ');
+        }
+        const ctx = ensureAudioContext();
+        if(ctx) playTone(ctx, 440 + i*45, ctx.currentTime, 0.12, 0.08);
+        if(i === groups.length - 1){
+          bonusDotTrailEl.textContent = isDivision
+            ? `${product} ÷ ${table} = ${factor}`
+            : `${factor} × ${table} = ${product}`;
+        }
+      }, 400 + i * stepMs));
+    });
+  }
+
+  // After a miss, the question comes back WITH the picture: dimmed groups she
+  // can tap one by one, with the running count shown as she goes.
+  function showDotsForRetry(){
+    hideCountAlongDots();
+    const { factor, table, isDivision } = bonusQuiz.chosen;
+    if(!factor || !table) return;
+    const cols = table <= 6 ? table : Math.ceil(table / 2);
+    bonusDotGroupsEl.innerHTML = '';
+    const updateCount = ()=>{
+      const lit = bonusDotGroupsEl.querySelectorAll('.dot-group.lit').length;
+      if(!lit){ bonusDotCountEl.innerHTML = '&nbsp;'; return; }
+      bonusDotCountEl.textContent = isDivision ? `${lit} group${lit > 1 ? 's' : ''}` : table * lit;
+    };
+    for(let g=0; g<factor; g++){
+      const box = document.createElement('div');
+      box.className = 'dot-group tappable';
+      box.style.gridTemplateColumns = `repeat(${cols}, 9px)`;
+      for(let d=0; d<table; d++){
+        const dot = document.createElement('div');
+        dot.className = 'dot';
+        box.appendChild(dot);
+      }
+      box.addEventListener('click', ()=>{
+        box.classList.toggle('lit');
+        const lit = bonusDotGroupsEl.querySelectorAll('.dot-group.lit').length;
+        const ctx = ensureAudioContext();
+        if(ctx && box.classList.contains('lit')) playTone(ctx, 440 + (lit-1)*45, ctx.currentTime, 0.12, 0.08);
+        updateCount();
+      });
+      bonusDotGroupsEl.appendChild(box);
+    }
+    bonusDotCountEl.innerHTML = '&nbsp;';
+    bonusDotTrailEl.textContent = isDivision
+      ? `These are groups of ${table}. Tap each group to count how many!`
+      : `${factor} groups of ${table}. Tap each group to count along!`;
+    bonusDotsEl.classList.remove('hidden');
+  }
+
+  // Wrong answer: show the correct answer with a visible countdown, then
+  // re-ask the same question. No dismiss — she has to get it right to
+  // continue. First miss lingers 5s, every miss after that lingers 10s.
+  function startBonusAnswerCountdown(correctAnswer, seconds){
+    if(bonusQuiz.countdownId) clearInterval(bonusQuiz.countdownId);
+    let remaining = seconds;
+    bonusOptionsEl.style.display = 'none';
+    showCountAlongDots(seconds);
+    const update = ()=>{
+      bonusFeedbackEl.textContent = `✗ The answer is ${correctAnswer}. Try again in ${remaining}...`;
+      bonusFeedbackEl.className = 'quiz-feedback bad';
+    };
+    update();
+    bonusQuiz.countdownId = setInterval(()=>{
+      remaining--;
+      if(remaining <= 0){
+        clearInterval(bonusQuiz.countdownId);
+        bonusQuiz.countdownId = null;
+        renderBonusQuestion();
+      } else {
+        update();
+      }
+    }, 1000);
+  }
+
+  gridEl.style.gridTemplateColumns = `repeat(${COLS}, 1fr)`;
+
+  function rand(n){ return Math.floor(Math.random()*n); }
+
+  // A tile is either a "factor" (1-9) or a "product" (factor * multiplier).
+  function randomTileValue(){
+    const factor = 1 + rand(9);
+    if(Math.random() < 0.5){
+      return factor;
+    }
+    return factor * multiplier;
+  }
+
+  function buildGrid(){
+    matchesThisBoard = 0;
+    levelEnding = false;
+    grid = [];
+    for(let r=0;r<ROWS;r++){ grid.push(new Array(COLS).fill(null)); }
+
+    // Pick a total jewel count for the whole board (7-12), then scatter them
+    // across rows with a per-row cap so they don't all pile into one row.
+    const jewelTotal = 7 + rand(6); // 7..12 inclusive
+    const capPerRow = 3;
+    const allPositions = [];
+    for(let r=0;r<ROWS;r++){ for(let c=0;c<COLS;c++){ allPositions.push([r,c]); } }
+    for(let i=allPositions.length-1;i>0;i--){
+      const j = rand(i+1);
+      [allPositions[i], allPositions[j]] = [allPositions[j], allPositions[i]];
+    }
+    const rowJewelCount = new Array(ROWS).fill(0);
+    const placedJewelPositions = [];
+    let placed = 0;
+    for(const [r,c] of allPositions){
+      if(placed >= jewelTotal) break;
+      if(rowJewelCount[r] < capPerRow){
+        grid[r][c] = {type:'jewel'};
+        rowJewelCount[r]++;
+        placed++;
+        placedJewelPositions.push([r,c]);
+      }
+    }
+    // Occasionally one heart on the board is actually a rare crystal jewel —
+    // matching through it drops a collectible Rock Crystal instead of a
+    // shuffle token.
+    if(placedJewelPositions.length > 0 && Math.random() < CRYSTAL_JEWEL_CHANCE){
+      const [cr, cc] = placedJewelPositions[rand(placedJewelPositions.length)];
+      grid[cr][cc] = {type:'crystal'};
+    }
+
+    // Fill everything else with number tiles — a fresh board has no empty
+    // cells at all; empties should only ever appear from clearing matches.
+    for(let r=0;r<ROWS;r++){
+      for(let c=0;c<COLS;c++){
+        if(grid[r][c] === null){
+          grid[r][c] = {type:'number', value: randomTileValue()};
+        }
+      }
+    }
+
+    selected = null;
+    render();
+  }
+
+  // Each heart/crystal sways in place with its own random speed, angle and
+  // direction. The phase is worked out from the clock, so the sway carries on
+  // smoothly when the board redraws (and the jewel keeps its own rhythm as it
+  // falls, because the settings travel with the cell).
+  function swayWrapper(cell){
+    if(!cell.sway){
+      cell.sway = {
+        dur: 1.8 + Math.random() * 2.2,
+        amp: (8 + Math.random() * 12) * (Math.random() < 0.5 ? -1 : 1),
+        off: Math.random() * 10
+      };
+    }
+    const w = document.createElement('div');
+    w.className = 'sway';
+    const spinSeconds = cell.sway.dur * 1.5;  // one turn still takes ~2.7–6s
+    const cycleSeconds = spinSeconds * 10;     // ...but only once every ~27–60s
+    const phase = (performance.now() / 1000 + cell.sway.off * 6) % cycleSeconds;
+    w.style.setProperty('--dur', cycleSeconds + 's');
+    w.style.animationDirection = cell.sway.amp < 0 ? 'reverse' : 'normal';
+    w.style.animationDelay = (-phase) + 's';
+    return w;
+  }
+
+  function render(){
+    gridEl.innerHTML = '';
+    let remaining = 0;
+    for(let r=0;r<ROWS;r++){
+      for(let c=0;c<COLS;c++){
+        const cell = grid[r][c];
+        const div = document.createElement('div');
+        div.className = 'cell ' + cell.type;
+        div.dataset.r = r;
+        div.dataset.c = c;
+        if(cell.type === 'number'){
+          if(cell.rainbow){ div.classList.add('rainbow'); div.textContent = '🌈'; }
+          else div.textContent = cell.value;
+          remaining++;
+          if(selected && selected.r===r && selected.c===c){
+            div.classList.add('selected');
+          }
+          div.addEventListener('click', onCellClick);
+        } else if(cell.type === 'jewel'){
+          const w = swayWrapper(cell);
+          const heart = document.createElement('div');
+          heart.className = 'heart';
+          w.appendChild(heart);
+          div.appendChild(w);
+        } else if(cell.type === 'crystal'){
+          const w = swayWrapper(cell);
+          w.innerHTML = crystalSVG('#ff8fc2', '#ffe66d');
+          div.appendChild(w);
+        }
+        gridEl.appendChild(div);
+      }
+    }
+    scoreEl.textContent = score;
+    remEl.textContent = remaining;
+    targetEl.textContent = '×' + multiplier;
+    levelEl.textContent = level;
+    shuffleCountEl.textContent = shuffleTokens;
+    multiplierBadgeEl.classList.toggle('hidden', scoreMultiplier <= 1);
+    streakValEl.textContent = streak;
+    streakBadgeEl.classList.toggle('hidden', streak < 2);
+    saveGame();
+  }
+
+  // Gravity: within each column, every non-empty cell (number OR jewel) sinks
+  // as far down as it can, leaving empties bubbled up to the top. Returns the
+  // list of cells that actually changed row, so the caller can animate them.
+  function applyGravity(){
+    const moves = []; // {col, fromRow, toRow}
+    for(let c=0;c<COLS;c++){
+      const stack = [];
+      const fromRows = [];
+      for(let r=0;r<ROWS;r++){
+        if(grid[r][c].type !== 'empty'){
+          stack.push(grid[r][c]);
+          fromRows.push(r);
+        }
+      }
+      const emptyCount = ROWS - stack.length;
+      for(let r=0;r<ROWS;r++){
+        if(r < emptyCount){
+          grid[r][c] = {type:'empty'};
+        } else {
+          const k = r - emptyCount;
+          grid[r][c] = stack[k];
+          if(fromRows[k] !== r) moves.push({col:c, fromRow:fromRows[k], toRow:r});
+        }
+      }
+    }
+    return moves;
+  }
+
+  function cellAt(r,c){ return grid[r][c]; }
+
+  // Applies a shudder-then-slide animation to cells that moved during the
+  // last gravity pass. Uses a FLIP approach: the DOM is already rendered at
+  // the FINAL position, so we offset each moved cell back to where it used
+  // to be (via --offset), then let the CSS animation shudder in place and
+  // slide it down to translate(0) — its true rendered position.
+  function animateFalls(moves){
+    if(!moves.length) return;
+    let rowStep = null;
+    moves.forEach(({col, fromRow, toRow})=>{
+      const el = gridEl.querySelector(`.cell[data-r="${toRow}"][data-c="${col}"]`);
+      if(!el) return;
+      if(rowStep === null){
+        const rect = el.getBoundingClientRect();
+        rowStep = rect.height + 5; // cell height + #grid gap
+      }
+      const offsetPx = (toRow - fromRow) * rowStep;
+      el.style.setProperty('--offset', `-${offsetPx}px`);
+      el.classList.add('tile-fall');
+      el.addEventListener('animationend', ()=> el.classList.remove('tile-fall'), {once:true});
+    });
+  }
+
+  // Pops a small "+N" text over the given cell and floats it up to the top
+  // of the grid, fading out. Positions itself once at spawn time — it does
+  // not track the cell afterward, so it's unaffected by gravity re-renders.
+  function spawnFloatingScore(r, c, text){
+    const cellEl = gridEl.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+    if(!cellEl || !gridWrapEl) return;
+    const wrapRect = gridWrapEl.getBoundingClientRect();
+    const cellRect = cellEl.getBoundingClientRect();
+    const x = cellRect.left - wrapRect.left + cellRect.width/2;
+    const yStart = cellRect.top - wrapRect.top + cellRect.height/2;
+    const rise = Math.max(yStart - 10, 20); // travel up to near the grid's top edge
+
+    const span = document.createElement('div');
+    span.className = 'float-score';
+    span.textContent = text;
+    span.style.left = x + 'px';
+    span.style.top = yStart + 'px';
+    span.style.transform = 'translate(-50%, -50%) scale(0.7)';
+    span.style.opacity = '1';
+    floatersEl.appendChild(span);
+
+    requestAnimationFrame(()=>{
+      span.style.transform = `translate(-50%, calc(-50% - ${rise}px)) scale(1.15)`;
+      span.style.opacity = '0';
+    });
+    setTimeout(()=> span.remove(), 950);
+  }
+
+  // Rises from the midpoint of the line between the two matched tiles,
+  // growing larger as it fades — reinforces the times-table fact just used.
+  // Purely decorative (pointer-events:none), never blocks interaction.
+  function spawnEquationPopup(text){
+    const startX = window.innerWidth / 2;
+    const startY = window.innerHeight * 0.42; // centered, slightly upper-middle
+
+    const GROW_MS = 450, HOLD_MS = 1600, FLOAT_MS = 1300;
+    const liftDuringGrow = 26;
+    const floatDistance = Math.max(startY + 100 - liftDuringGrow, 80);
+
+    const span = document.createElement('div');
+    span.className = 'equation-float';
+    span.textContent = text;
+    span.style.left = startX + 'px';
+    span.style.top = startY + 'px';
+    span.style.transform = 'translate(-50%, -50%) scale(0.4)';
+    span.style.opacity = '1';
+    document.body.appendChild(span);
+
+    requestAnimationFrame(()=>{
+      span.style.transition = `transform ${GROW_MS}ms cubic-bezier(0.16,0.6,0.2,1)`;
+      span.style.transform = `translate(-50%, calc(-50% - ${liftDuringGrow}px)) scale(1.15)`;
+    });
+    setTimeout(()=>{
+      span.style.transition = `transform ${FLOAT_MS}ms cubic-bezier(0.3,0,0.7,1), opacity ${FLOAT_MS}ms ease-in`;
+      span.style.transform = `translate(-50%, calc(-50% - ${liftDuringGrow + floatDistance}px)) scale(1.9)`;
+      span.style.opacity = '0';
+    }, GROW_MS + HOLD_MS);
+    setTimeout(()=> span.remove(), GROW_MS + HOLD_MS + FLOAT_MS + 150);
+  }
+
+  // Full-screen confetti burst of little hearts that fall, bounce near the
+  // bottom of the screen, then fade — triggered whenever a heart is won.
+  const confettiEl = document.getElementById('confetti');
+  const HEART_EMOJI = ['💖','💗','💕','💓','❤️'];
+  const CONFETTI_HOLD_MS = 20000; // how long a settled heart stays before fading
+  const physicsHearts = []; // {el,x,y,vx,vy,r,rot,bounces,settled,dead}
+  let physicsRunning = false;
+  let physicsStartedAt = 0;
+  const PHYSICS_MAX_MS = 11000; // stop simulating motion after this long; hearts just rest
+
+  function ensurePhysicsLoopRunning(){
+    if(!physicsRunning){
+      physicsRunning = true;
+      physicsStartedAt = performance.now();
+      requestAnimationFrame(heartPhysicsTick);
+    } else {
+      physicsStartedAt = performance.now(); // extend the active-motion window for new arrivals
+    }
+  }
+
+  function spawnHeartConfetti(count){
+    const floorY = window.innerHeight - 26;
+    for(let i=0;i<count;i++){
+      const el = document.createElement('div');
+      el.className = 'confetti-heart';
+      el.textContent = HEART_EMOJI[rand(HEART_EMOJI.length)];
+      const size = 15 + rand(15);
+      el.style.fontSize = size + 'px';
+      confettiEl.appendChild(el);
+
+      const heart = {
+        el,
+        x: (0.05 + Math.random()*0.9) * window.innerWidth,
+        y: -20 - rand(120),
+        vx: (Math.random()*2 - 1) * 2.2,
+        vy: (1 + Math.random()*2) / 3,
+        gravityScale: 1/3, // heart-win confetti falls at a third of normal speed
+        r: size * 0.42,
+        rot: rand(360),
+        bounces: 0,
+        settled: false,
+        dead: false,
+        floorY
+      };
+      physicsHearts.push(heart);
+      requestAnimationFrame(()=>{ el.style.opacity = '1'; });
+
+      setTimeout(()=> fadeAndRemoveHeart(heart), PHYSICS_MAX_MS + CONFETTI_HOLD_MS + 200);
+    }
+    ensurePhysicsLoopRunning();
+  }
+
+  // "Heart cannon" — launches a single heart from the bottom of the screen
+  // with a strong upward kick; gravity, the 3 floor bounces, and collisions
+  // with everything else on screen are all handled by the same physics loop.
+  function launchCannonHeart(){
+    const floorY = window.innerHeight - 26;
+    const el = document.createElement('div');
+    el.className = 'confetti-heart';
+    el.textContent = HEART_EMOJI[rand(HEART_EMOJI.length)];
+    const size = 16 + rand(16);
+    el.style.fontSize = size + 'px';
+    confettiEl.appendChild(el);
+
+    const heart = {
+      el,
+      x: window.innerWidth/2 + (Math.random()*2 - 1) * window.innerWidth * 0.2,
+      y: floorY - 6,
+      vx: (Math.random()*2 - 1) * 7,
+      vy: -(9 + Math.random()*7),
+      gravityScale: 1, // cannon hearts stay at full speed for the "go wild" moment
+      r: size * 0.42,
+      rot: rand(360),
+      bounces: 0,
+      settled: false,
+      dead: false,
+      floorY
+    };
+    physicsHearts.push(heart);
+    requestAnimationFrame(()=>{ el.style.opacity = '1'; });
+    setTimeout(()=> fadeAndRemoveHeart(heart), PHYSICS_MAX_MS + CONFETTI_HOLD_MS + 3000);
+    ensurePhysicsLoopRunning();
+  }
+
+  // Fires a continuous stream of cannon hearts for the given duration —
+  // the "go wild" celebration for matching across 2+ hearts at once.
+  function startHeartCannon(durationMs){
+    const start = performance.now();
+    for(let i=0;i<5;i++) launchCannonHeart(); // opening burst
+    const intervalId = setInterval(()=>{
+      if(performance.now() - start >= durationMs){
+        clearInterval(intervalId);
+        return;
+      }
+      const burst = 2 + rand(3);
+      for(let i=0;i<burst;i++) launchCannonHeart();
+    }, 130);
+  }
+
+  function fadeAndRemoveHeart(heart){
+    if(heart.dead) return;
+    heart.dead = true;
+    heart.el.style.opacity = '0';
+    setTimeout(()=> heart.el.remove(), 650);
+  }
+
+  function heartPhysicsTick(now){
+    const GRAVITY = 0.55;
+    const FLOOR_DAMPING = 0.42;
+    const MAX_BOUNCES = 3;
+    const stillWithinMotionWindow = (now - physicsStartedAt) < PHYSICS_MAX_MS;
+
+    if(stillWithinMotionWindow){
+      for(const h of physicsHearts){
+        if(h.dead || h.settled) continue;
+        h.vy += GRAVITY * (h.gravityScale != null ? h.gravityScale : 1);
+        h.vx += gravityBiasX * (h.gravityScale != null ? h.gravityScale : 1);
+        h.x += h.vx;
+        h.y += h.vy;
+        h.rot += h.vx;
+        if(h.x < h.r){ h.x = h.r; h.vx *= -0.6; }
+        if(h.x > window.innerWidth - h.r){ h.x = window.innerWidth - h.r; h.vx *= -0.6; }
+        if(h.y > h.floorY){
+          h.y = h.floorY;
+          h.bounces++;
+          if(h.bounces >= MAX_BOUNCES){
+            h.vy = 0; h.vx *= 0.3; h.settled = true;
+          } else {
+            h.vy = -h.vy * FLOOR_DAMPING;
+            h.vx *= 0.85;
+          }
+        }
+      }
+
+      // Pairwise collision: hearts push each other apart and pick up a
+      // little bounce energy when they overlap. Two hearts that are BOTH
+      // already at rest only get their overlap resolved positionally — no
+      // velocity exchange — otherwise resting piles jiggle forever as
+      // gravity and overlap-correction fight each other every frame.
+      const IMPULSE_DEADZONE = 0.6;
+      for(let i=0;i<physicsHearts.length;i++){
+        const a = physicsHearts[i];
+        if(a.dead) continue;
+        for(let j=i+1;j<physicsHearts.length;j++){
+          const b = physicsHearts[j];
+          if(b.dead) continue;
+          const dx = b.x - a.x, dy = b.y - a.y;
+          const dist = Math.hypot(dx,dy) || 0.001;
+          const minDist = a.r + b.r;
+          if(dist < minDist){
+            const nx = dx/dist, ny = dy/dist;
+            const overlap = (minDist - dist) / 2;
+            a.x -= nx*overlap; a.y -= ny*overlap;
+            b.x += nx*overlap; b.y += ny*overlap;
+            if(!(a.settled && b.settled)){
+              const rvx = b.vx-a.vx, rvy = b.vy-a.vy;
+              const rel = rvx*nx + rvy*ny;
+              if(rel < -IMPULSE_DEADZONE){
+                const impulse = -rel*0.5;
+                a.vx -= impulse*nx; a.vy -= impulse*ny;
+                b.vx += impulse*nx; b.vy += impulse*ny;
+                a.settled = false; b.settled = false;
+              }
+            }
+            if(a.y > a.floorY){ a.y = a.floorY; }
+            if(b.y > b.floorY){ b.y = b.floorY; }
+          }
+        }
+      }
+    } else {
+      // Motion window's up — snap anything still moving to a rest state so
+      // the animation loop can actually stop instead of running forever.
+      for(const h of physicsHearts){
+        if(!h.dead && !h.settled){ h.settled = true; h.vx = 0; h.vy = 0; }
+      }
+    }
+
+    for(const h of physicsHearts){
+      if(h.dead) continue;
+      h.el.style.transform = `translate(${h.x}px, ${h.y}px) translate(-50%,-50%) rotate(${h.rot}deg)`;
+    }
+    // drop fully-removed hearts from the array so it doesn't grow forever
+    for(let i=physicsHearts.length-1;i>=0;i--){
+      if(physicsHearts[i].dead && !physicsHearts[i].el.isConnected) physicsHearts.splice(i,1);
+    }
+
+    if(stillWithinMotionWindow || physicsHearts.some(h=>!h.dead && !h.settled)){
+      requestAnimationFrame(heartPhysicsTick);
+    } else {
+      physicsRunning = false;
+    }
+  }
+
+  // Radial firework-style heart bursts — a few explosion points, each
+  // scattering hearts outward. Used for the periodic "love moment".
+  function spawnFireworkBurst(originXvw, originYvh){
+    const particles = 10 + rand(6);
+    for(let i=0;i<particles;i++){
+      const angle = (360/particles)*i + rand(20)-10;
+      const distance = 60 + rand(90);
+      const rad = angle * Math.PI/180;
+      const dx = Math.cos(rad)*distance;
+      const dy = Math.sin(rad)*distance;
+      const el = document.createElement('div');
+      el.className = 'firework-heart';
+      el.textContent = HEART_EMOJI[rand(HEART_EMOJI.length)];
+      el.style.left = originXvw + 'vw';
+      el.style.top = originYvh + 'vh';
+      el.style.fontSize = (16 + rand(12)) + 'px';
+      el.style.setProperty('--dx', dx + 'px');
+      el.style.setProperty('--dy', dy + 'px');
+      confettiEl.appendChild(el);
+      setTimeout(()=> el.remove(), 1250);
+    }
+  }
+  function spawnHeartFireworks(){
+    const bursts = 3 + rand(2);
+    for(let b=0; b<bursts; b++){
+      setTimeout(()=>{
+        spawnFireworkBurst(15 + rand(70), 12 + rand(45));
+      }, b*350);
+    }
+  }
+
+  // Periodic "Dad loves you" moment: a message, heart fireworks, and a
+  // random reward — fires on its own every 5-10 minutes while the game is open.
+  const LOVE_MESSAGES = [
+    "Freya, your amazing Dad George, loves you so much!",
+    "Unbreakable bond with Dad",
+    "Dad is so proud of you",
+    "You are my favourite daughter so far",
+    "You are kind, you are smart, you are caring!"
+  ];
+
+  function grantRandomReward(){
+    const options = [
+      {type:'score', amount:25},
+      {type:'score', amount:50},
+      {type:'score', amount:100},
+      {type:'shuffle', amount:1},
+      {type:'shuffle', amount:2}
+    ];
+    const reward = options[rand(options.length)];
+    if(reward.type === 'score'){
+      score += reward.amount * scoreMultiplier;
+    } else {
+      shuffleTokens += reward.amount;
+    }
+    render();
+    return reward;
+  }
+
+  function showLoveToast(message, reward){
+    loveMessageEl.textContent = message;
+    loveRewardEl.textContent = reward.type === 'score'
+      ? `🎁 +${reward.amount} bonus points!`
+      : `🎁 +${reward.amount} shuffle token${reward.amount>1?'s':''}!`;
+    loveToastEl.classList.remove('hidden');
+    requestAnimationFrame(()=> loveToastEl.classList.add('show'));
+  }
+
+  function dismissLoveToast(){
+    loveToastEl.classList.remove('show');
+    setTimeout(()=> loveToastEl.classList.add('hidden'), 400);
+  }
+  document.getElementById('loveDismissBtn').addEventListener('click', dismissLoveToast);
+
+  function triggerLoveMoment(){
+    const message = LOVE_MESSAGES[rand(LOVE_MESSAGES.length)];
+    const reward = grantRandomReward();
+    showLoveToast(message, reward);
+    spawnHeartFireworks();
+  }
+
+  function scheduleLoveMoment(){
+    const delayMinutes = 5 + rand(6); // 5..10 minutes
+    setTimeout(()=>{
+      triggerLoveMoment();
+      scheduleLoveMoment();
+    }, delayMinutes * 60 * 1000);
+  }
+
+  // All 8 straight-line directions: horizontal, vertical, and both diagonals.
+  const DIRECTIONS = [
+    [0,1], [0,-1],   // row (wraps left/right)
+    [1,0], [-1,0],   // column (wraps top/bottom)
+    [1,1], [1,-1], [-1,1], [-1,-1] // diagonals (wrap on either axis)
+  ];
+
+  // Walk from (r1,c1) along one direction on a toroidal board (both edges wrap)
+  // until we either reach the target, hit a blocking tile, or loop back to start.
+  // Jewels are passable (they don't block line of sight) — the returned path
+  // records every cell crossed so the caller can count jewel crossings.
+  // Returns an array of {r,c,type} for the winning direction, or null if no
+  // direction connects the two cells.
+  function findPath(r1,c1,r2,c2){
+    const maxSteps = ROWS * COLS; // safety bound; real cycles are much shorter
+    for(const [dr,dc] of DIRECTIONS){
+      let r = r1, c = c1;
+      const path = [];
+      for(let steps=0; steps<maxSteps; steps++){
+        r = ((r + dr) % ROWS + ROWS) % ROWS;
+        c = ((c + dc) % COLS + COLS) % COLS;
+        if(r===r2 && c===c2) return path; // reached target, path so far was clear
+        if(r===r1 && c===c1) break; // looped all the way around, nothing here
+        const cell = grid[r][c];
+        if(cell.type === 'number') break; // blocked by another number tile
+        path.push({r, c, type: cell.type}); // 'empty' or 'jewel' — both passable
+      }
+    }
+    return null;
+  }
+
+  // Match rule: one value must be the other multiplied by the current times table.
+  function valuesMatch(a,b){
+    if(a % multiplier === 0 && a / multiplier === b) return true;
+    if(b % multiplier === 0 && b / multiplier === a) return true;
+    return false;
+  }
+
+  function canMatch(r1,c1,r2,c2){
+    if(r1===r2 && c1===c2) return false;
+    const a = cellAt(r1,c1), b = cellAt(r2,c2);
+    if(a.type!=='number' || b.type!=='number') return false;
+    if(!(a.rainbow || b.rainbow || valuesMatch(a.value, b.value))) return false;
+    return findPath(r1,c1,r2,c2) !== null;
+  }
+
+  // Checks whether any valid match still exists anywhere on the board.
+  function hasAnyMove(){
+    const numberCells = [];
+    for(let r=0;r<ROWS;r++){
+      for(let c=0;c<COLS;c++){
+        if(grid[r][c].type==='number') numberCells.push({r,c,value:grid[r][c].value, rainbow:!!grid[r][c].rainbow});
+      }
+    }
+    for(let i=0;i<numberCells.length;i++){
+      for(let j=i+1;j<numberCells.length;j++){
+        const A = numberCells[i], B = numberCells[j];
+        if((A.rainbow || B.rainbow || valuesMatch(A.value, B.value)) && findPath(A.r, A.c, B.r, B.c)) return true;
+      }
+    }
+    return false;
+  }
+
+  // No moves left: celebrate, then roll straight into the spin-wheel flow
+  // for a new board — no quiz gate this time, and score/shuffle tokens carry
+  // over rather than resetting.
+  // Finale first: any hearts/crystals still on the board pop one by one into
+  // bonus points (crystals also drop a collectible), then Level Complete.
+  let levelEnding = false;
+  function triggerLevelComplete(){
+    if(levelEnding) return;
+    if(bonusActive){
+      afterBonusQueue.push(()=> setTimeout(()=>{ if(!hasAnyMove()) triggerLevelComplete(); }, 1200));
+      return;
+    }
+    levelEnding = true;
+    const specials = [];
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+      const t = grid[r][c].type;
+      if(t==='jewel' || t==='crystal') specials.push({r,c,t});
+    }
+    const START = 700, STEP = 240;
+    if(specials.length){
+      msgEl.textContent = '🎆 Finale! Leftover hearts turn into bonus points!';
+      spawnPraise(4, 'Finale!');
+      spawnHeartConfetti(40);
+    }
+    specials.forEach((s, i)=>{
+      setTimeout(()=>{
+        const pts = 20 * scoreMultiplier;
+        score += pts;
+        if(s.t === 'crystal'){
+          const cr = pickRandomCrystal();
+          ownedCrystals[cr.id] = (ownedCrystals[cr.id] || 0) + 1;
+          spawnFloatingScore(s.r, s.c, '💎 ' + cr.name);
+        } else {
+          spawnFloatingScore(s.r, s.c, '+' + pts);
+        }
+        grid[s.r][s.c] = {type:'empty'};
+        render();
+      }, START + i*STEP);
+    });
+    const finaleMs = specials.length ? START + specials.length*STEP + 500 : 0;
+    setTimeout(()=>{
+      levelCompleteOverlay.classList.remove('hidden');
+      spawnHeartFireworks();
+      setTimeout(()=>{
+        levelCompleteOverlay.classList.add('hidden');
+        openSpinner(false);
+      }, 2600);
+    }, finaleMs);
+  }
+
+  // Scans every row once for "complete" rows (a jewel present, no numbers left)
+  // and pops their jewels for a bonus. Returns true if anything popped.
+  function popCompletedRowsOnce(){
+    const completedRows = [];
+    let bonusTotal = 0;
+    let crystalsFoundThisPass = [];
+    for(let r=0;r<ROWS;r++){
+      const hasSpecial = grid[r].some(cell => cell.type==='jewel' || cell.type==='crystal');
+      if(!hasSpecial) continue;
+      const hasNumber = grid[r].some(cell => cell.type==='number');
+      if(hasNumber) continue;
+      for(let c=0;c<COLS;c++){
+        if(grid[r][c].type==='jewel'){
+          grid[r][c] = {type:'empty'};
+          bonusTotal += 50;
+        } else if(grid[r][c].type==='crystal'){
+          grid[r][c] = {type:'empty'};
+          bonusTotal += 50;
+          const crystal = pickRandomCrystal();
+          ownedCrystals[crystal.id] = (ownedCrystals[crystal.id] || 0) + 1;
+          crystalsFoundThisPass.push(crystal);
+        }
+      }
+      completedRows.push(r);
+    }
+    if(completedRows.length){
+      score += bonusTotal * scoreMultiplier;
+      render();
+      completedRows.forEach(flashRow);
+      const crystalNote = crystalsFoundThisPass.length
+        ? ` 💎 Found a ${crystalsFoundThisPass.map(c=>c.name).join(', ')}!`
+        : '';
+      msgEl.textContent = (completedRows.length===1
+        ? `Row ${completedRows[0]+1} cleared! +${bonusTotal} bonus`
+        : `${completedRows.length} rows cleared! +${bonusTotal} bonus`) + crystalNote;
+    }
+    return completedRows.length > 0;
+  }
+
+  // After a match: let everything fall, then check the whole board for rows
+  // that are now complete (gravity itself can empty a row of numbers, even
+  // one the match never touched). Clearing jewels can open new gaps, so this
+  // loops to catch any resulting chain reaction.
+  function settleBoard(){
+    let moves = applyGravity();
+    render();
+    animateFalls(moves);
+    while(popCompletedRowsOnce()){
+      moves = applyGravity();
+      render();
+      animateFalls(moves);
+    }
+    if(!hasAnyMove()) triggerLevelComplete();
+  }
+
+  function flashRow(r){
+    setTimeout(()=>{
+      for(let c=0;c<COLS;c++){
+        const el = gridEl.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+        if(el) el.classList.add('row-clear');
+      }
+    }, 10);
+  }
+
+  function onCellClick(e){
+    tryEnableDeviceTiltGravity();
+    const r = parseInt(e.currentTarget.dataset.r);
+    const c = parseInt(e.currentTarget.dataset.c);
+    if(!selected){
+      selected = {r,c};
+      render();
+      return;
+    }
+    if(selected.r===r && selected.c===c){
+      selected = null;
+      render();
+      return;
+    }
+    const a = cellAt(selected.r, selected.c), b = cellAt(r,c);
+    const valid = a.type==='number' && b.type==='number' && (a.rainbow || b.rainbow || valuesMatch(a.value,b.value));
+    const path = valid ? findPath(selected.r, selected.c, r, c) : null;
+    if(path){
+      score += 10 * scoreMultiplier;
+      const jewelCells = path.filter(cell => cell.type==='jewel');
+      const jewelsCrossed = jewelCells.length;
+      if(jewelsCrossed > 0){
+        shuffleTokens += jewelsCrossed;
+        score += jewelsCrossed * 10 * scoreMultiplier;
+      }
+      const crystalCells = path.filter(cell => cell.type==='crystal');
+      const crystalsFound = crystalCells.map(()=> pickRandomCrystal());
+      if(crystalsFound.length > 0){
+        score += crystalsFound.length * 20 * scoreMultiplier;
+        crystalsFound.forEach(c=>{ ownedCrystals[c.id] = (ownedCrystals[c.id] || 0) + 1; });
+      }
+      const linesBefore = numberPresence();
+      const r1=selected.r, c1=selected.c, r2=r, c2=c;
+      // With a rainbow tile, build the equation from the other tile so the
+      // times-table reinforcement still makes sense.
+      let factor, product;
+      if(a.rainbow || b.rainbow){
+        const other = a.rainbow ? (b.rainbow ? null : b) : a;
+        if(!other){ factor = 1 + rand(9); product = factor * multiplier; }
+        else if(other.value % multiplier === 0 && other.value / multiplier <= 12){ factor = other.value / multiplier; product = other.value; }
+        else { factor = other.value; product = other.value * multiplier; }
+      } else {
+        factor = Math.min(a.value, b.value);
+        product = Math.max(a.value, b.value);
+      }
+      const equationText = `${factor} × ${multiplier} = ${product}`;
+      grid[r1][c1] = {type:'empty'};
+      grid[r2][c2] = {type:'empty'};
+      jewelCells.forEach(jc => { grid[jc.r][jc.c] = {type:'empty'}; }); // hearts crossed are consumed
+      crystalCells.forEach(cc => { grid[cc.r][cc.c] = {type:'empty'}; }); // crystal jewels crossed are consumed
+      selected = null;
+      const wentWild = jewelsCrossed >= 2;
+      let matchMsg = wentWild
+        ? `DOUBLE HEARTS! 🎉 +${jewelsCrossed*10*scoreMultiplier} bonus — double points from now on!`
+        : jewelsCrossed > 0
+          ? `Match! +10 — connected through ${jewelsCrossed} heart${jewelsCrossed>1?'s':''}, +${jewelsCrossed*10*scoreMultiplier} bonus, +${jewelsCrossed} shuffle token${jewelsCrossed>1?'s':''}!`
+          : 'Match! +10';
+      if(crystalsFound.length > 0){
+        matchMsg += ` 💎 Found a ${crystalsFound.map(c=>c.name).join(', ')}!`;
+      }
+      msgEl.textContent = matchMsg;
+      if(wentWild) scoreMultiplier = 2;
+      render();
+      // Bonus question (if any) comes first; every celebration for this
+      // match is held back until it's answered so Freya actually sees it.
+      // (This also stops the equation popup giving the answer away.)
+      maybeTriggerBonusQuiz(factor, multiplier, product);
+      settleBoard();
+      const earnedRainbow = path.length >= 3 && !levelEnding && spawnRainbowTile();
+      if(earnedRainbow) msgEl.textContent += ' 🌈 Long match! A Rainbow tile appeared — it matches ANY number!';
+      whenBonusClear(()=>{
+        spawnEquationPopup(equationText);
+        jewelCells.forEach(jc => spawnFloatingScore(jc.r, jc.c, '+10'));
+        crystalCells.forEach((cc,i) => spawnFloatingScore(cc.r, cc.c, '💎 ' + crystalsFound[i].name));
+        if(jewelsCrossed > 0) spawnHeartConfetti(Math.min(60 * jewelsCrossed, 240));
+        if(wentWild) startHeartCannon(10000);
+        const linesCleared = celebrateClearedLines(linesBefore);
+        const moveGoodness = jewelsCrossed + crystalsFound.length*2 + linesCleared + (earnedRainbow?2:0) + (wentWild?2:0);
+        if(moveGoodness > 0) spawnPraise(moveGoodness);
+      });
+    } else {
+      msgEl.textContent = "Not a match — check the ×" + multiplier + " relationship and the path.";
+      const el = e.currentTarget;
+      el.classList.add('bad');
+      setTimeout(()=>{
+        selected = null;
+        render();
+      }, 280);
+    }
+  }
+
+  function shuffleRemaining(){
+    if(shuffleTokens <= 0){
+      msgEl.textContent = 'No shuffle tokens — connect a match through a heart to earn one.';
+      return;
+    }
+    shuffleTokens--;
+    const positions = [];
+    const values = [];
+    for(let r=0;r<ROWS;r++){
+      for(let c=0;c<COLS;c++){
+        if(grid[r][c].type==='number'){
+          positions.push([r,c]);
+          values.push(grid[r][c]);
+        }
+      }
+    }
+    for(let i=values.length-1;i>0;i--){
+      const j = rand(i+1);
+      [values[i],values[j]] = [values[j],values[i]];
+    }
+    positions.forEach(([r,c],i)=>{
+      grid[r][c] = values[i];
+    });
+    selected = null;
+    msgEl.textContent = 'Shuffled remaining tiles.';
+    render();
+  }
+
+  document.getElementById('newBoard').addEventListener('click', ()=>{
+    scoreBaselineForReset = score;
+    tokensBaselineForReset = shuffleTokens;
+    openQuiz(openSpinner);
+  });
+  document.getElementById('shuffle').addEventListener('click', ()=>{
+    if(shuffleTokens > 0){
+      shuffleRemaining();
+    } else {
+      openQuiz(()=>{
+        shuffleTokens += 1;
+        shuffleRemaining();
+      });
+    }
+  });
+
+  // ---------- Line-clear lasers ----------
+  function numberPresence(){
+    const rows = new Set(), cols = new Set();
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+      if(grid[r][c].type==='number'){ rows.add(r); cols.add(c); }
+    }
+    return {rows, cols};
+  }
+  function fireLaser(orientation, index){
+    const isRow = orientation === 'row';
+    const first = isRow ? gridEl.querySelector(`.cell[data-r="${index}"][data-c="0"]`)
+                        : gridEl.querySelector(`.cell[data-r="0"][data-c="${index}"]`);
+    const last  = isRow ? gridEl.querySelector(`.cell[data-r="${index}"][data-c="${COLS-1}"]`)
+                        : gridEl.querySelector(`.cell[data-r="${ROWS-1}"][data-c="${index}"]`);
+    if(!first || !last) return;
+    const wrap = gridWrapEl.getBoundingClientRect();
+    const a = first.getBoundingClientRect(), b = last.getBoundingClientRect();
+    const beam = document.createElement('div');
+    beam.className = 'laser ' + (isRow ? 'laser-h' : 'laser-v');
+    if(isRow){
+      beam.style.left = (a.left - wrap.left) + 'px';
+      beam.style.width = (b.right - a.left) + 'px';
+      beam.style.top = (a.top - wrap.top + a.height/2) + 'px';
+    } else {
+      beam.style.top = (a.top - wrap.top) + 'px';
+      beam.style.height = (b.bottom - a.top) + 'px';
+      beam.style.left = (a.left - wrap.left + a.width/2) + 'px';
+    }
+    beam.innerHTML = '<div class="laser-spark"></div>';
+    floatersEl.appendChild(beam);
+    setTimeout(()=> beam.remove(), 1050);
+  }
+  // Any row or column that had numbers before this match and has none now
+  // gets a laser zip plus a small bonus.
+  function celebrateClearedLines(before){
+    const after = numberPresence();
+    const rows = [...before.rows].filter(r => !after.rows.has(r));
+    const cols = [...before.cols].filter(c => !after.cols.has(c));
+    let i = 0;
+    rows.forEach(r => setTimeout(()=> fireLaser('row', r), 150 * i++));
+    cols.forEach(c => setTimeout(()=> fireLaser('col', c), 150 * i++));
+    const n = rows.length + cols.length;
+    if(n){
+      const bonus = 25 * n * scoreMultiplier;
+      score += bonus;
+      scoreEl.textContent = score; // no full re-render, so fall animations aren't interrupted
+      saveGame();
+      msgEl.textContent += ` ⚡ Line clear! +${bonus}`;
+    }
+    return n;
+  }
+
+  // Big pop-up praise word, scaled to how good the moment was.
+  const PRAISE_WORDS = {
+    1: ['Nice!', 'Super!', 'Great!', 'Sweet!'],
+    2: ['Brilliant!', 'Amazing!', 'Wonderful!', 'Awesome!'],
+    3: ['Swiftastic!', 'Fantastic!', 'Spectacular!', 'Legendary!']
+  };
+  function spawnPraise(goodness, customWord){
+    const tier = goodness >= 4 ? 3 : goodness >= 2 ? 2 : 1;
+    const words = PRAISE_WORDS[tier];
+    const el = document.createElement('div');
+    el.className = 'praise t' + tier;
+    el.textContent = customWord || words[rand(words.length)];
+    document.body.appendChild(el);
+    setTimeout(()=> el.remove(), 1450);
+  }
+
+  // Turns a random ordinary number tile into a Rainbow tile (matches
+  // anything). Updates the tile in place so fall animations aren't cut off.
+  function spawnRainbowTile(){
+    const candidates = [];
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+      if(grid[r][c].type==='number' && !grid[r][c].rainbow) candidates.push([r,c]);
+    }
+    if(!candidates.length) return false;
+    const [r,c] = candidates[rand(candidates.length)];
+    grid[r][c].rainbow = true;
+    const el = gridEl.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+    if(el){ el.classList.add('rainbow'); el.textContent = '🌈'; }
+    saveGame();
+    return true;
+  }
+
+  // ---------- Squishy shop & crystal collection ----------
+  let shopTab = 'squishies';
+  function openShop(){
+    renderShop();
+    shopOverlay.classList.remove('hidden');
+  }
+  function renderShop(){
+    tabSquishiesBtn.classList.toggle('active', shopTab === 'squishies');
+    tabCrystalsBtn.classList.toggle('active', shopTab === 'crystals');
+    let html = `<div class="shop-points" style="grid-column:1/-1">You have <b>${score}</b> points</div>`;
+    if(shopTab === 'squishies'){
+      SQUISHY_CATALOG.forEach(s=>{
+        const owned = !!ownedSquishies[s.id];
+        const short = s.price - score;
+        const btn = owned ? `<button disabled>✓ Owned</button>`
+          : short > 0 ? `<button disabled>Need ${short} more</button>`
+          : `<button data-buy="${s.id}">Buy</button>`;
+        html += `<div class="shop-item${owned ? ' owned' : ''}">${bearSVG(s.main, s.accent, s.sparkle)}
+          <div class="item-name">${s.name}</div><div class="item-rarity">${s.rarity}</div>
+          <div class="item-price">${s.price} pts</div>${btn}</div>`;
+      });
+    } else {
+      const found = CRYSTAL_CATALOG.filter(c => ownedCrystals[c.id]).length;
+      html += `<div class="shop-points" style="grid-column:1/-1">Found <b>${found}</b> of ${CRYSTAL_CATALOG.length} — match through a glowing crystal to find more!</div>`;
+      CRYSTAL_CATALOG.forEach(c=>{
+        const n = ownedCrystals[c.id] || 0;
+        html += n
+          ? `<div class="shop-item owned">${crystalSVG(c.main, c.light)}<div class="item-name">${c.name}</div>
+             <div class="item-rarity">${c.rarity}</div><div class="item-price">× ${n}</div></div>`
+          : `<div class="shop-item">${crystalSVG('#555', '#777')}<div class="item-name">???</div>
+             <div class="item-rarity">${c.rarity}</div></div>`;
+      });
+    }
+    shopBodyEl.innerHTML = html;
+    shopBodyEl.querySelectorAll('button[data-buy]').forEach(b =>
+      b.addEventListener('click', ()=> openCheckout(b.dataset.buy)));
+  }
+
+  // Checkout teaches change: she "pays" with a round amount and has to work
+  // out the change before the squishy is hers.
+  const checkout = { item:null, paid:0, change:0, wrong:0 };
+  function openCheckout(id){
+    const item = SQUISHY_CATALOG.find(s => s.id === id);
+    if(!item || score < item.price) return;
+    const notes = [50, 100, 200, 500, 1000, 2000];
+    let paid = notes.find(n => n > item.price);
+    if(!paid || paid > score) paid = score;
+    checkout.item = item; checkout.paid = paid;
+    checkout.change = paid - item.price; checkout.wrong = 0;
+    checkoutInfoEl.innerHTML = `${item.name} costs <b>${item.price}</b> points.<br>You pay with <b>${paid}</b> points.<br>How much change do you get back?`;
+    checkoutFeedbackEl.innerHTML = '&nbsp;';
+    checkoutFeedbackEl.className = 'quiz-feedback';
+    renderCheckoutQuestion();
+    shopOverlay.classList.add('hidden');
+    checkoutOverlay.classList.remove('hidden');
+  }
+  function renderCheckoutQuestion(){
+    const c = checkout.change;
+    checkoutQuestionEl.textContent = `${checkout.paid} − ${checkout.item.price} = ?`;
+    const opts = new Set([c]);
+    const offsets = [1, 5, 10, 20, 50];
+    let guard = 0;
+    while(opts.size < 4 && guard++ < 60){
+      const o = offsets[rand(offsets.length)];
+      const cand = c + (rand(2) ? o : -o);
+      if(cand >= 0) opts.add(cand);
+    }
+    const arr = Array.from(opts);
+    for(let k=arr.length-1;k>0;k--){ const j = rand(k+1); [arr[k],arr[j]] = [arr[j],arr[k]]; }
+    checkoutOptionsEl.innerHTML = '';
+    arr.forEach(v=>{
+      const btn = document.createElement('button');
+      btn.className = 'quiz-opt';
+      btn.textContent = v;
+      btn.addEventListener('click', ()=> answerCheckout(v));
+      checkoutOptionsEl.appendChild(btn);
+    });
+  }
+  function answerCheckout(v){
+    ensureAudioContext();
+    Array.from(checkoutOptionsEl.children).forEach(b => b.disabled = true);
+    if(v === checkout.change){
+      score -= checkout.item.price;
+      ownedSquishies[checkout.item.id] = true;
+      checkoutFeedbackEl.textContent = `✓ Yes! You get ${checkout.change} back. ${checkout.item.name} is yours! 🧸`;
+      checkoutFeedbackEl.className = 'quiz-feedback good';
+      render();
+      spawnHeartFireworks();
+      playPerfectFanfare();
+      setTimeout(()=>{ checkoutOverlay.classList.add('hidden'); openShop(); }, 2200);
+    } else {
+      checkout.wrong++;
+      checkoutFeedbackEl.textContent = checkout.wrong === 1
+        ? '✗ Not quite — try counting up from the price!'
+        : `✗ Hint: count up from ${checkout.item.price} to ${checkout.paid}.`;
+      checkoutFeedbackEl.className = 'quiz-feedback bad';
+      setTimeout(renderCheckoutQuestion, 1400);
+    }
+  }
+
+  document.getElementById('openShopBtn').addEventListener('click', openShop);
+  document.getElementById('closeShopBtn').addEventListener('click', ()=> shopOverlay.classList.add('hidden'));
+  document.getElementById('checkoutBackBtn').addEventListener('click', ()=>{
+    checkoutOverlay.classList.add('hidden');
+    openShop();
+  });
+  tabSquishiesBtn.addEventListener('click', ()=>{ shopTab = 'squishies'; renderShop(); });
+  tabCrystalsBtn.addEventListener('click', ()=>{ shopTab = 'crystals'; renderShop(); });
+
+  // Save/load: persists progress in this browser so closing and reopening
+  // the page picks up where she left off. Wrapped in try/catch since
+  // storage can be unavailable (private browsing, quota, etc.) — if so, the
+  // game just plays normally without saving, no error shown to the player.
+  const SAVE_KEY = 'ttt_savegame_v1';
+  function saveGame(){
+    try{
+      const state = { v:1, grid, score, level, multiplier, shuffleTokens, scoreMultiplier, matchesThisBoard,
+                      ownedSquishies, ownedCrystals, streak };
+      localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    } catch(e){ /* storage unavailable — just skip saving */ }
+  }
+  function loadGame(){
+    try{
+      const raw = localStorage.getItem(SAVE_KEY);
+      if(!raw) return false;
+      const state = JSON.parse(raw);
+      if(!state || !Array.isArray(state.grid) || state.grid.length !== ROWS) return false;
+      grid = state.grid;
+      score = typeof state.score === 'number' ? state.score : 0;
+      level = typeof state.level === 'number' ? state.level : 1;
+      multiplier = ALL_TABLES.includes(state.multiplier) ? state.multiplier : multiplier;
+      shuffleTokens = typeof state.shuffleTokens === 'number' ? state.shuffleTokens : 0;
+      scoreMultiplier = state.scoreMultiplier === 2 ? 2 : 1;
+      matchesThisBoard = typeof state.matchesThisBoard === 'number' ? state.matchesThisBoard : 0;
+      ownedSquishies = (state.ownedSquishies && typeof state.ownedSquishies === 'object') ? state.ownedSquishies : {};
+      ownedCrystals = (state.ownedCrystals && typeof state.ownedCrystals === 'object') ? state.ownedCrystals : {};
+      streak = typeof state.streak === 'number' ? state.streak : 0;
+      selected = null;
+      render();
+      return true;
+    } catch(e){ return false; }
+  }
+
+  // ---------- Settings: choose enabled times tables ----------
+  const settingsOverlay = document.getElementById('settingsOverlay');
+  const tableGridEl = document.getElementById('tableGrid');
+  const settingsWarningEl = document.getElementById('settingsWarning');
+  let draftTables = [];
+  const spinToggleEl = document.getElementById('spinToggle');
+  let draftSpin = false;
+  function renderSpinToggle(){
+    spinToggleEl.classList.toggle('on', draftSpin);
+    spinToggleEl.setAttribute('aria-pressed', draftSpin ? 'true' : 'false');
+    spinToggleEl.textContent = (draftSpin ? '✓ ' : '') + 'Spinning hearts & crystals';
+  }
+  spinToggleEl.addEventListener('click', ()=>{ draftSpin = !draftSpin; renderSpinToggle(); });
+  function openSettings(){
+    draftTables = WHEEL_VALUES.slice();
+    draftSpin = spinJewels;
+    renderSpinToggle();
+    renderSettings();
+    settingsWarningEl.innerHTML = '&nbsp;';
+    settingsOverlay.classList.remove('hidden');
+  }
+  function renderSettings(){
+    tableGridEl.innerHTML = '';
+    ALL_TABLES.forEach(t=>{
+      const chip = document.createElement('button');
+      const on = draftTables.includes(t);
+      chip.type = 'button';
+      chip.className = 'table-chip' + (on ? ' on' : '');
+      chip.setAttribute('aria-pressed', on ? 'true' : 'false');
+      chip.textContent = (on ? '✓ ' : '') + '×' + t;
+      chip.addEventListener('click', ()=>{
+        draftTables = on ? draftTables.filter(x => x !== t) : draftTables.concat(t).sort((a,b)=>a-b);
+        settingsWarningEl.innerHTML = '&nbsp;';
+        renderSettings();
+      });
+      tableGridEl.appendChild(chip);
+    });
+  }
+  document.getElementById('openSettingsBtn').addEventListener('click', openSettings);
+  document.getElementById('settingsCancelBtn').addEventListener('click', ()=> settingsOverlay.classList.add('hidden'));
+  document.getElementById('settingsSaveBtn').addEventListener('click', ()=>{
+    if(!draftTables.length){
+      settingsWarningEl.textContent = 'Tick at least one times table.';
+      return;
+    }
+    WHEEL_VALUES = draftTables.slice();
+    spinJewels = draftSpin;
+    document.body.classList.toggle('spin-jewels', spinJewels);
+    try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify({ tables: WHEEL_VALUES, spinJewels })); } catch(e){}
+    buildWheel();
+    settingsOverlay.classList.add('hidden');
+    msgEl.textContent = `Times tables set to ${WHEEL_VALUES.map(t=>'×'+t).join(', ')} — from the next spin.`;
+  });
+
+  if(!loadGame()) buildGrid();
+  scheduleLoveMoment();
+})();
+</script>
+<script>
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', ()=>{
+      navigator.serviceWorker.register('sw.js').catch(()=>{ /* fine — just no offline mode */ });
+    });
+  }
+</script>
+</body>
+</html>
