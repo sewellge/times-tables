@@ -1,4 +1,4 @@
-# Taylor Swift Times Tables (installable app)
+# Times Tables (installable app)
 
 Host this whole folder on any HTTPS site, then install it from the browser.
 Easiest free options: Netlify Drop (drag the folder onto app.netlify.com/drop)

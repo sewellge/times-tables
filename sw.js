@@ -1,6 +1,6 @@
 // Offline support. Serves from cache instantly, then quietly refreshes the
 // cache in the background, so a new version shows up on the next launch.
-const CACHE = 'times-tables-v1';
+const CACHE = 'times-tables-v2';
 const FILES = [
   './', './index.html', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png',
